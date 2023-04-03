@@ -1,0 +1,730 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.eclipse.ee4j</groupId>
+    <artifactId>cargo-tracker</artifactId>
+    <version>2.1</version>
+    <packaging>war</packaging>
+    <name>Eclipse Cargo Tracker</name>
+    <description>
+        The project demonstrates how you can develop applications with the Jakarta EE platform using
+        widely adopted architectural best practices like Domain-Driven Design (DDD).   
+    </description>
+    <url>https://eclipse-ee4j.github.io/cargotracker/</url>
+
+    <organization>
+        <name>Eclipse Foundation</name>
+        <url>https://www.eclipse.org/org/foundation/</url>
+    </organization>
+
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/eclipse-ee4j/cargotracker/issues</url>
+    </issueManagement>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.report.sourceEncoding>UTF-8</project.report.sourceEncoding>
+
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
+        <jakartaee-api.version>8.0.0</jakartaee-api.version>
+
+        <arquillian-bom.version>1.6.0.Final</arquillian-bom.version>
+
+        <!-- Test Utilities -->
+        <junit.version>4.13.1</junit.version>
+        <hamcrest.version>2.2</hamcrest.version>
+        <assertj.version>3.18.1</assertj.version>
+        <project.build.time>${maven.build.timestamp}</project.build.time>
+
+        <jta.data.source>java:app/jdbc/CargoTrackerDatabase</jta.data.source>
+        <initial.data.sql>initital-data.sql</initial.data.sql>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>jakarta.platform</groupId>
+                <artifactId>jakarta.jakartaee-api</artifactId>
+                <version>${jakartaee-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Arquillian Bill Of Management used to reduce collision between testing dependencies. 
+                Using a dependency manager we don't need to specify the version of each Arquillian dependency. -->
+            <dependency>
+                <groupId>org.jboss.arquillian</groupId>
+                <artifactId>arquillian-bom</artifactId>
+                <version>${arquillian-bom.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest</artifactId>
+                <version>${hamcrest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+
+        <!-- Required by Java SE 9+ -->
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>2.3.3</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- The third-party dependencies this application has -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.primefaces</groupId>
+            <artifactId>primefaces</artifactId>
+            <version>8.0</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Arquillian dependencies -->
+        <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Resolvers are needed in the Arquillian tests. This is used for adding all the runtime dependencies 
+            inside a testing war. -->
+        <dependency>
+            <groupId>org.jboss.shrinkwrap.resolver</groupId>
+            <artifactId>shrinkwrap-resolver-impl-maven</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Needed for Arquillian to log -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>cargo-tracker</finalName>
+        <resources>
+          <resource>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+          </resource>
+        </resources>
+        <testResources>
+          <testResource>
+            <directory>src/test/resources</directory>
+            <filtering>true</filtering>
+          </testResource>
+        </testResources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <filteringDeploymentDescriptors>true</filteringDeploymentDescriptors>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <!-- The currently supported application servers are represented as profiles -->
+        <!-- WebLogic on VM Profile -->
+        <profile>
+            <id>weblogicOnVm</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <webapp.graphTraversalUrl>http://localhost:8001/cargo-tracker/rest/graph-traversal/shortest-path</webapp.graphTraversalUrl>                
+                <db.driverClass>org.apache.derby.jdbc.EmbeddedDriver</db.driverClass>
+                <db.jdbcUrl>jdbc:derby:${webapp.databaseTempDir}/cargo-tracker-database;create=true</db.jdbcUrl>
+                <jta.data.source>jdbc/CargoTrackerDB</jta.data.source>
+                <initial.data.sql>postgresql-initital-data.sql</initial.data.sql>
+                <project.build.time>${maven.build.timestamp}</project.build.time>
+                <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+            </properties>
+            <dependencies>
+              <!-- GlassFish specific dependencies, could go away in Java EE 8 -->
+              <dependency>
+                <groupId>org.glassfish.jersey.containers</groupId>
+                <artifactId>jersey-container-servlet-core</artifactId>
+                <version>2.0</version>
+                <scope>provided</scope>
+              </dependency>
+
+              <dependency>
+                <groupId>org.jboss.arquillian.container</groupId>
+                <artifactId>arquillian-wls-remote-12.1.2</artifactId>
+                <version>1.0.0.Alpha3</version>
+                <scope>test</scope>
+              </dependency>
+            </dependencies>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+                    </resource>
+                </resources>
+                <testResources>
+                  <testResource>
+                    <directory>src/test/resources</directory>
+                    <filtering>true</filtering>
+                  </testResource>
+                </testResources>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>2.6</version>
+                        <configuration>
+                            <failOnMissingWebXml>false</failOnMissingWebXml>
+                            <filteringDeploymentDescriptors>true</filteringDeploymentDescriptors>
+                            <webXml>${basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.18.1</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                            <systemPropertyVariables>
+                                <!-- This is needed to tell the unit tests which profile
+                                we are running. -->
+                                <profileId>${project.activeProfiles[0].id}</profileId>
+                                <!-- This is needed to tell Arquillian which profile
+                                we are running. -->
+                                <arquillian.launch>${project.activeProfiles[0].id}</arquillian.launch>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- WebLogic on Aks Profile -->
+        <profile>
+            <id>weblogicOnAks</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <webapp.graphTraversalUrl>http://sample-domain1-cluster-cluster-1:8001/cargo-tracker/rest/graph-traversal/shortest-path</webapp.graphTraversalUrl>                
+                <db.driverClass>org.apache.derby.jdbc.EmbeddedDriver</db.driverClass>
+                <db.jdbcUrl>jdbc:derby:${webapp.databaseTempDir}/cargo-tracker-database;create=true</db.jdbcUrl>
+                <jta.data.source>jdbc/CargoTrackerDB</jta.data.source>
+                <initial.data.sql>postgresql-initital-data.sql</initial.data.sql>
+                <project.build.time>${maven.build.timestamp}</project.build.time>
+                <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+            </properties>
+            <dependencies>
+              <!-- GlassFish specific dependencies, could go away in Java EE 8 -->
+              <dependency>
+                <groupId>org.glassfish.jersey.containers</groupId>
+                <artifactId>jersey-container-servlet-core</artifactId>
+                <version>2.0</version>
+                <scope>provided</scope>
+              </dependency>
+
+              <dependency>
+                <groupId>org.jboss.arquillian.container</groupId>
+                <artifactId>arquillian-wls-remote-12.1.2</artifactId>
+                <version>1.0.0.Alpha3</version>
+                <scope>test</scope>
+              </dependency>
+            </dependencies>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+                    </resource>
+                </resources>
+                <testResources>
+                  <testResource>
+                    <directory>src/test/resources</directory>
+                    <filtering>true</filtering>
+                  </testResource>
+                </testResources>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>2.6</version>
+                        <configuration>
+                            <failOnMissingWebXml>false</failOnMissingWebXml>
+                            <filteringDeploymentDescriptors>true</filteringDeploymentDescriptors>
+                            <webXml>${basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.18.1</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                            <systemPropertyVariables>
+                                <!-- This is needed to tell the unit tests which profile
+                                we are running. -->
+                                <profileId>${project.activeProfiles[0].id}</profileId>
+                                <!-- This is needed to tell Arquillian which profile
+                                we are running. -->
+                                <arquillian.launch>${project.activeProfiles[0].id}</arquillian.launch>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- OpenLiberty on Aks Profile -->
+        <profile>
+            <id>openLibertyOnAks</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <webapp.graphTraversalUrl>http://localhost:9080/rest/graph-traversal/shortest-path</webapp.graphTraversalUrl>
+                <jta.data.source>jdbc/CargoTrackerDB</jta.data.source>
+                <initial.data.sql>postgresql-initital-data.sql</initial.data.sql>
+                <project.build.time>${maven.build.timestamp}</project.build.time>
+                <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+                <liberty.bootstrap.db.server.name>${db.server.name}</liberty.bootstrap.db.server.name>
+                <liberty.bootstrap.db.port.number>${db.port.number}</liberty.bootstrap.db.port.number>
+                <liberty.bootstrap.db.name>${db.name}</liberty.bootstrap.db.name>
+                <liberty.bootstrap.db.user>${db.user}</liberty.bootstrap.db.user>
+                <liberty.bootstrap.db.password>${db.password}</liberty.bootstrap.db.password>
+                <param.login.server>${env.LOGIN_SERVER}</param.login.server>
+                <param.registry.name>${env.REGISTRY_NAME}</param.registry.name>
+                <param.password>${env.PASSWORD}</param.password>
+                <param.user.name>${env.USER_NAME}</param.user.name>
+                <param.db.server.name>${env.DB_SERVER_NAME}</param.db.server.name>
+                <param.db.port.number>${env.DB_PORT_NUMBER}</param.db.port.number>
+                <param.db.name>${env.DB_NAME}</param.db.name>
+                <param.db.user>${env.DB_USER}</param.db.user>
+                <param.db.password>${env.DB_PASSWORD}</param.db.password>
+                <param.namespace>${env.NAMESPACE}</param.namespace>
+                <param.replicas>1</param.replicas>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>javax.ws.rs</groupId>
+                    <artifactId>javax.ws.rs-api</artifactId>
+                    <version>2.1</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>javax.json</groupId>
+                    <artifactId>javax.json-api</artifactId>
+                    <version>1.0</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.glassfish.jersey.media</groupId>
+                    <artifactId>jersey-media-sse</artifactId>
+                    <version>3.0.3</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.2.4</version>
+                    <type>jar</type>
+                </dependency>
+            </dependencies>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+                    </resource>
+                </resources>
+                <testResources>
+                    <testResource>
+                        <directory>src/test/resources</directory>
+                        <filtering>true</filtering>
+                    </testResource>
+                </testResources>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>2.6</version>
+                        <configuration>
+                            <failOnMissingWebXml>false</failOnMissingWebXml>
+                            <filteringDeploymentDescriptors>true</filteringDeploymentDescriptors>
+                            <webXml>${basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.18.1</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                            <systemPropertyVariables>
+                                <!-- This is needed to tell the unit tests which profile
+                                we are running. -->
+                                <profileId>${project.activeProfiles[0].id}</profileId>
+                                <!-- This is needed to tell Arquillian which profile
+                                we are running. -->
+                                <arquillian.launch>${project.activeProfiles[0].id}</arquillian.launch>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-jdbc-driver</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeArtifactIds>postgresql</includeArtifactIds>
+                                    <outputDirectory>${project.build.directory}/liberty/wlp/usr/shared/resources</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>io.openliberty.tools</groupId>
+                        <artifactId>liberty-maven-plugin</artifactId>
+                        <version>3.5.1</version>
+                        <executions>
+                            <execution>
+                                <id>package-server</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>create</goal>
+                                    <goal>install-feature</goal>
+                                    <goal>deploy</goal>
+                                </goals>
+                                <configuration>
+                                    <libertyRuntimeVersion>[20.0.0.1,)</libertyRuntimeVersion>
+                                    <outputDirectory>${project.build.directory}/wlp-package</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <executions>
+                            <execution>
+                                <id>01-dockerfile</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${basedir}/target</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/main/liberty/docker</directory>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>02-aks-config</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${basedir}/target</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/main/liberty/aks</directory>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>payara</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <payara.version>5.2021.2</payara.version>                
+                <!-- Application properties -->
+                <webapp.graphTraversalUrl>http://localhost:8080/cargo-tracker/rest/graph-traversal/shortest-path</webapp.graphTraversalUrl>                
+                <db.driverClass>org.h2.jdbcx.JdbcDataSource</db.driverClass>
+                <!-- H2 file engine requires an absolute path, eg. ~/name, ./name or a full-qualified 
+                    path name (it should include driver name under Windows). -->
+                <db.jdbcUrl>jdbc:h2:file:./cargo-tracker-data/cargo-tracker-database;create=true</db.jdbcUrl>
+            </properties>
+
+            <dependencies>
+                <!-- We need a Jersey specific dependency -->
+                <dependency>
+                    <groupId>org.glassfish.jersey.core</groupId>
+                    <artifactId>jersey-server</artifactId>
+                    <version>2.33</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <!-- Embedding the JDBC driver in the WAR works in Payara -->
+                <dependency>
+                    <groupId>com.h2database</groupId>
+                    <artifactId>h2</artifactId>
+                    <version>1.4.200</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>fish.payara.arquillian</groupId>
+                    <artifactId>arquillian-payara-micro-managed</artifactId>
+                    <version>2.4.1</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <resources>
+                  <resource>
+                    <directory>src/main/resources</directory>
+                    <filtering>true</filtering>
+                  </resource>
+                </resources>
+                <testResources>
+                  <testResource>
+                    <directory>src/test/resources</directory>
+                    <filtering>true</filtering>
+                  </testResource>
+                </testResources>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>fish.payara.extras</groupId>
+                                    <artifactId>payara-micro</artifactId>
+                                    <version>${payara.version}</version>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>payara-micro.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.22.2</version>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <PAYARA_MICRO_JAR>${project.build.directory}/payara-micro.jar</PAYARA_MICRO_JAR>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.cargo</groupId>
+                        <artifactId>cargo-maven2-plugin</artifactId>
+                        <version>1.8.5</version>
+                        <configuration>
+                            <container>
+                                <containerId>payara</containerId>
+                                <artifactInstaller>
+                                    <groupId>fish.payara.distributions</groupId>
+                                    <artifactId>payara</artifactId>
+                                    <version>${payara.version}</version>
+                                </artifactInstaller>
+                            </container>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Cloud/production deployment using Payara and PostgreSQL. -->
+        <profile>
+            <id>cloud</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <payara.version>5.2021.2</payara.version>
+                <webapp.graphTraversalUrl>http://localhost:8080/rest/graph-traversal/shortest-path</webapp.graphTraversalUrl>                
+                <db.driverClass>org.postgresql.ds.PGPoolingDataSource</db.driverClass>
+                <!-- Pass in via command line (e.g. mvn clean package -Pcloud -DpostgreSqlJdbcUrl=jdbc:postgresql://localhost:5432/postgres?user=postgres). -->
+                <db.jdbcUrl>${postgreSqlJdbcUrl}</db.jdbcUrl>
+            </properties>
+
+            <dependencies>
+                <!-- We need a Jersey specific dependency -->
+                <dependency>
+                    <groupId>org.glassfish.jersey.core</groupId>
+                    <artifactId>jersey-server</artifactId>
+                    <version>2.33</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <!-- Embedding the JDBC driver in the WAR works in Payara Micro -->
+                <dependency>
+                    <groupId>com.h2database</groupId>
+                    <artifactId>h2</artifactId>
+                    <version>1.4.200</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>fish.payara.arquillian</groupId>
+                    <artifactId>arquillian-payara-micro-managed</artifactId>
+                    <version>2.4.1</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy</id>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>fish.payara.extras</groupId>
+                                    <artifactId>payara-micro</artifactId>
+                                    <version>${payara.version}</version>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>payara-micro.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.postgresql</groupId>
+                                    <artifactId>postgresql</artifactId>
+                                    <version>42.2.20</version>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>postgresql.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.22.2</version>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <PAYARA_MICRO_JAR>${project.build.directory}/payara-micro.jar</PAYARA_MICRO_JAR>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+          <id>server-xml</id>
+          <properties>
+              <db.server.name>${env.DB_SERVER_NAME}</db.server.name>
+              <db.port.number>${env.DB_PORT_NUMBER}</db.port.number>
+              <db.name>${env.DB_NAME}</db.name>
+              <db.user>${env.DB_USER}</db.user>
+              <db.password>${env.DB_PASSWORD}</db.password>
+          </properties>
+          <build>
+            <plugins>
+              <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                  <execution>
+                    <id>server-xml</id>
+                    <phase>validate</phase>
+                    <goals>
+                      <goal>copy-resources</goal>
+                    </goals>
+                    <configuration>
+                      <outputDirectory>${project.build.directory}/liberty/wlp/usr/servers/defaultServer</outputDirectory>
+                      <resources>
+                        <resource>
+                          <directory>src/main/liberty/config</directory>
+                          <filtering>true</filtering>
+                        </resource>
+                      </resources>
+                    </configuration>
+                  </execution>
+                </executions>
+              </plugin>
+            </plugins>
+          </build>
+        </profile>          
+    </profiles>
+</project>

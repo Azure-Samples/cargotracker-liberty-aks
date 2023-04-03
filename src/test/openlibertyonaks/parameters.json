@@ -1,0 +1,38 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "value": "https://raw.githubusercontent.com/#gitUserName#/azure.liberty.aks/#testbranchName#/src/main/"
+        },
+        "location": {
+            "value": "#location#"
+        },
+        "identity": {
+            "value": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "#userAssignedManagedIdentity#": {}
+                }
+            }
+        },
+        "createCluster": {
+            "value": true
+        },
+        "vmSize": {
+            "value": "Standard_DS2_v2"
+        },
+        "minCount": {
+            "value": 1
+        },
+        "maxCount": {
+            "value": 5
+        },
+        "createACR": {
+            "value": true
+        },
+        "deployApplication": {
+            "value": false
+        }
+    }
+}

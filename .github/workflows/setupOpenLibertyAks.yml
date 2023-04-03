@@ -1,0 +1,360 @@
+name: Setup OpenLiberty on AKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      disambiguationSuffix:
+        description: "Included in names to disambiguate. Get from another pipeline execution"
+        required: true
+      region:
+        description: "Azure region for resources"
+        required: true
+        default: eastus
+  repository_dispatch:
+
+env:
+  refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
+  refJavaee: b728442f1921282f5f3902fe5bdf7f4d2c7872ca
+  azCliVersion: 2.40.0
+  azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
+  dbName: wlsdb${{ github.run_id }}${{ github.run_number }}
+  dbAdminUser: liberty
+  dbPassword: ${{ secrets.DB_PASSWORD }}
+  location: ${{ github.event.inputs.region }}
+  namespace: default
+  replicas: 1
+  resourceGroupForDB: wlsd-db-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForOpenLibertyAks: ol-aks-${{ github.event.inputs.disambiguationSuffix }}-${{ github.run_number }}
+  aksRepoUserName: WASdev
+  aksRepoBranchName: b37f5abcb3085ed4220287abe9f76fbda67ebe3e
+
+jobs:
+  # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
+  preflight:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up bicep
+        run: |
+          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.11.1/bicep-linux-x64
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          bicep --version
+      # This is a precondition necessary to generate the bicep file to deploy Liberty on AKS.
+      - name: Checkout azure-javaee-iaas
+        uses: actions/checkout@v2
+        with:
+          repository: Azure/azure-javaee-iaas
+          path: azure-javaee-iaas
+          ref: ${{ env.refJavaee }}
+      - name: Checkout arm-ttk
+        uses: actions/checkout@v2
+        with:
+          repository: Azure/arm-ttk
+          path: arm-ttk
+          ref: ${{ env.refArmttk }}
+      # Check out the repository containing the code to deploy Liberty on AKS.
+      - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.aksRepoUserName }}/azure.liberty.aks
+          path: azure.liberty.aks
+          ref: ${{ env.aksRepoBranchName }}
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Build azure-javaee-iaas
+        run: mvn clean install --file azure-javaee-iaas/pom.xml
+      # Generate the Liberty on AKS bicep template so it can be invoked later. The bicep template is enclosed in a zip file
+      - name: Build and test ${{ env.aksRepoUserName }}/azure.liberty.aks
+        run: |
+          cd azure.liberty.aks
+          mvn -Pbicep -Ddev -Passembly -Ptemplate-validation-tests clean install
+      - name: Generate artifact file name and path
+        id: artifact_file
+        run: |
+          version=$(awk '/<version>[^<]+<\/version>/{gsub(/<version>|<\/version>/,"",$1);print $1;exit;}' azure.liberty.aks/pom.xml)
+          artifactName=azure.liberty.aks-$version-arm-assembly
+          unzip azure.liberty.aks/target/$artifactName.zip -d azure.liberty.aks/target/$artifactName
+          echo "artifactName=${artifactName}" >> $GITHUB_OUTPUT
+          echo "artifactPath=azure.liberty.aks/target/$artifactName" >> $GITHUB_OUTPUT
+      # Make the contents of the zip file available for use later in the workflow.
+      - name: Archive azure.liberty.aks template
+        uses: actions/upload-artifact@v1
+        if: success()
+        with:
+          name: ${{steps.artifact_file.outputs.artifactName}}
+          path: ${{steps.artifact_file.outputs.artifactPath}}
+  # Set up database for use by application.
+  deploy-db:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v1
+        id: azure-login
+        with:
+          creds: ${{ env.azureCredentials }}
+      - name: Create Resource Group
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            echo "create resource group" ${{ env.resourceGroupForDB }}
+            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ env.location }}
+      - name: Set Up Azure Postgresql to Test dbTemplate
+        id: setup-postgresql
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            echo "Deploy DB with name " ${{ env.dbName }}
+            az postgres server create \
+            --resource-group ${{ env.resourceGroupForDB }} \
+            --name ${{ env.dbName }}  \
+            --location ${{ env.location }} \
+            --admin-user ${{ env.dbAdminUser }} \
+            --ssl-enforcement Disabled \
+            --public-network-access Enabled \
+            --admin-password ${{ env.dbPassword }} \
+            --sku-name B_Gen5_1
+            echo "Allow Access To Azure Services"
+            az postgres server firewall-rule create \
+            -g ${{ env.resourceGroupForDB }} \
+            -s ${{ env.dbName }} \
+            -n "AllowAllWindowsAzureIps" \
+            --start-ip-address "0.0.0.0" \
+            --end-ip-address "0.0.0.0"
+  # Invoke the solution template, passing the necessary parameters to identify the configuration of AKS.
+  deploy-openliberty-on-aks:
+    needs: preflight
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.aksRepoUserName }}/azure.liberty.aks
+          path: azure.liberty.aks
+          ref: ${{ env.aksRepoBranchName }}
+      - name: Get version information from azure.liberty.aks/pom.xml
+        id: version
+        run: |
+          version=$(awk '/<version>[^<]+<\/version>/{gsub(/<version>|<\/version>/,"",$1);print $1;exit;}' azure.liberty.aks/pom.xml)
+          echo "version=${version}" >> $GITHUB_ENV
+      - name: Output artifact name for Download action
+        id: artifact_file
+        run: |
+          artifactName=azure.liberty.aks-$version-arm-assembly
+          echo "artifactName=${artifactName}" >> $GITHUB_ENV
+          echo "artifactName=${artifactName}" >> $GITHUB_OUTPUT
+      - name: Download artifact for deployment
+        uses: actions/download-artifact@v1
+        with:
+          name: ${{steps.artifact_file.outputs.artifactName}}
+      - uses: azure/login@v1
+        id: azure-login
+        with:
+          creds: ${{ env.azureCredentials }}
+      - name: Create Resource Group
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            echo "create resource group" ${{ env.resourceGroupForOpenLibertyAks }}
+            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ env.location }}
+      - name: Checkout cargotracker
+        uses: actions/checkout@v2
+        with:
+          path: cargotracker
+      - name: Prepare parameter file
+        run: |
+          echo "replace placeholders using real parameter"
+          sed -i "s/#location#/${location}/g; \
+                  s/#testbranchName#/${aksRepoBranchName}/g; \
+                  s/#gitUserName#/${aksRepoUserName}/g" \
+                  cargotracker/src/test/aks/parameters.json
+      - name: Archive parameters.json
+        uses: actions/upload-artifact@v1
+        with:
+          name: archivefiles
+          path: cargotracker/src/test/aks/parameters.json
+      # Validate the parameters file in the context of the solution template to be invoked. This will catch some errors before taking the time to start the full deployment.
+      - name: Validate Deploy of Open Liberty Server Cluster Domain offer
+        id: validate-openliberty-cluster-deployment
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            az deployment group validate \
+            --debug \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+            --name openliberty-on-aks \
+            --parameters @cargotracker/src/test/aks/parameters.json \
+            --template-file ${artifactName}/mainTemplate.json
+      - name: Deploy Open Liberty Server Cluster Domain offer
+        id: deploy-openliberty-cluster
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            az deployment group create \
+            --verbose \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+            --name openliberty-on-aks \
+            --parameters @cargotracker/src/test/aks/parameters.json \
+            --template-file ${artifactName}/mainTemplate.json
+  # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
+  deploy-cargo-tracker:
+    needs: [deploy-db,deploy-openliberty-on-aks]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Install jq
+        run: |
+          sudo apt-get install jq -y
+      - uses: azure/login@v1
+        id: azure-login
+        with:
+          creds: ${{ env.azureCredentials }}
+      # Obtain AKS and ACR resource properties.
+      - name: Prepare variables
+        id: prepare_variables
+        run: |
+          echo "Query AKS cluster name"
+          aksClusterName=$(az aks list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+          if [ -z "${aksClusterName}" ] ; then
+            echo "Failed to obtain AKS. Exiting."
+            exit 1
+          fi
+          echo "aksClusterName=${aksClusterName}" >> $GITHUB_ENV
+
+          acrName=$(az acr list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+          if [ -z "${acrName}" ] ; then
+            echo "Falied to obtain ACR. Exiting."
+            exit 1
+          fi
+
+          azureACRServer=$(az acr show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'loginServer' -o tsv)
+          azureACRUserName=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'username' -o tsv)
+          azureACRPassword=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'passwords[0].value' -o tsv)
+
+          echo "azureACRServer=${azureACRServer}" >> $GITHUB_OUTPUT
+          echo "azureACRUserName=${azureACRUserName}" >> $GITHUB_OUTPUT
+          echo "azureACRPassword=${azureACRPassword}" >> $GITHUB_OUTPUT
+      - name: Checkout cargotracker
+        uses: actions/checkout@v2
+        with:
+          path: cargotracker
+      # Build Cargo Tracker with DB and JMS configuration
+      - name: Build the app
+        run: |
+          echo "build the Cargo Tracker web app"
+          echo "setup environment variables"
+          export LOGIN_SERVER=${{steps.prepare_variables.outputs.azureACRServer}}
+          export USER_NAME=${{steps.prepare_variables.outputs.azureACRUserName}}
+          export PASSWORD=${{steps.prepare_variables.outputs.azureACRPassword}}
+          export DB_SERVER_NAME=${{ env.dbName }}.postgres.database.azure.com
+          export DB_PORT_NUMBER=5432
+          export DB_NAME=postgres
+          export DB_USER=${{ env.dbAdminUser }}@${{ env.dbName }}
+          export DB_PASSWORD=${{ env.dbPassword }}
+          export NAMESPACE=${{ env.namespace }}
+          mvn clean install -PopenLibertyOnAks --file cargotracker/pom.xml
+      - name: Query version string for deployment verification
+        run: |
+          PROPERTY_FILE="cargotracker/target/cargo-tracker/WEB-INF/classes/org/eclipse/cargotracker/messages.properties"
+          PROP_KEY=versionString
+          deployVersion=$(cat $PROPERTY_FILE | grep "$PROP_KEY" | cut -d '=' -f 2)
+          echo "deployVersion=${deployVersion}" >> $GITHUB_ENV
+      - name: Build image and upload to ACR
+        run: |
+          echo "get image name and version"
+          cd cargotracker/
+          IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec) 
+          IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+
+          echo "build image and upload"
+          cd target/
+          docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=Dockerfile .
+          docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${{steps.prepare_variables.outputs.azureACRServer}}/${IMAGE_NAME}:${IMAGE_VERSION}
+          docker login -u ${{steps.prepare_variables.outputs.azureACRUserName}} -p ${{steps.prepare_variables.outputs.azureACRPassword}} ${{steps.prepare_variables.outputs.azureACRServer}}
+
+          docker push ${{steps.prepare_variables.outputs.azureACRServer}}/${IMAGE_NAME}:${IMAGE_VERSION}
+      - name: Connect to AKS cluster
+        run: |
+          echo "connect to cluster"
+          az aks get-credentials --resource-group ${{ env.resourceGroupForOpenLibertyAks }} --name ${aksClusterName}
+      - name: Apply deployment files
+        run: |
+          echo "record time before restart"
+          timestampBeforePatchingDomain=$(date +%s)
+          cd cargotracker/target/
+          kubectl apply -f db-secret.yaml
+          kubectl apply -f openlibertyapplication.yaml
+          # restart every time to make sure
+          sleep 30
+          kubectl rollout restart deployment/cargo-tracker-cluster
+          echo "timestampBeforePatchingDomain=${timestampBeforePatchingDomain}" >> $GITHUB_ENV
+      # Make sure all the pods are running.
+      - name: Verify pods are ready
+        run: |
+          # interval of checking pod status.
+          checkPodStatusInterval=20
+          # max attempt to check pod status.
+          checkPodStatusMaxAttempts=30
+          updatedPodNum=0
+          attempt=0
+          echo $timestampBeforePatchingDomain ${{ env.replicas }} $checkPodStatusMaxAttempts $checkPodStatusInterval
+          while [[ ${updatedPodNum} -ne ${{ env.replicas }} ]] && [[ $attempt -le ${checkPodStatusMaxAttempts} ]]; do
+              echo "attempts ${attempt}"
+              ret=$(kubectl get pods -n ${{ env.namespace }} -o json | jq -r '.items[] | select(.metadata.name|test("cargo-tracker-cluster.")) | .metadata.creationTimestamp' | tr -d "\"")
+              counter=0
+              for item in $ret; do
+                  podCreateTimeStamp=$(date -u -d "${item}" +"%s")
+                  echo "pod create time: $podCreateTimeStamp, base time: ${timestampBeforePatchingDomain}"
+                  if [[ ${podCreateTimeStamp} -gt ${timestampBeforePatchingDomain} ]]; then
+                      counter=$((counter + 1))
+                  fi
+              done
+              updatedPodNum=$counter
+              echo "Number of new pod: ${updatedPodNum}"
+              attempt=$((attempt + 1))
+              sleep ${checkPodStatusInterval}
+          done
+          if [[ ${attempt} -gt ${checkPodStatusMaxAttempts} ]]; then
+              echo "Failed to restart all pods. "
+              exit 1
+          fi
+      - name: Query Application URL
+        run: |
+          externalIp=$(kubectl get service -o json | jq -r '.items[] | select(.metadata.name=="cargo-tracker-cluster") | .status.loadBalancer.ingress[0].ip')
+          echo "external ip is: " $externalIp
+          echo "appURL=${externalIp}:9080" >> $GITHUB_ENV
+      # Validate the app using playwright
+      - name: Verify that the app is update
+        run: |
+          # install dependencies
+          sudo apt-get update
+          sudo apt-get install libegl1\
+                libhyphen0\
+                libopus0\
+                libwoff1\
+                libharfbuzz-icu0\
+                libgstreamer-plugins-base1.0-0\
+                libgstreamer-gl1.0-0\
+                libgstreamer-plugins-bad1.0-0\
+                libopenjp2-7\
+                libwebpdemux2\
+                libenchant1c2a\
+                libgles2\
+                gstreamer1.0-libav -y
+          appURL=http://${{ env.appURL }}/
+          cd cargotracker/src/test/aks/playwright-ui-test
+          mvn clean install
+          mvn exec:java -e -Dexec.mainClass=com.microsoft.azure.javaee.FetchBuildVersion -Dexec.args="'${appURL}' '${{ env.deployVersion }}'"
+      # Print app URL to the pipeline summary page.
+      - name: Print app URL
+        run: |
+          echo "http://${appURL}" >> $GITHUB_STEP_SUMMARY

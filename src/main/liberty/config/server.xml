@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="defaultServer">
+    <!-- Enable features -->
+    <featureManager>
+        <feature>cdi-2.0</feature>
+        <feature>jaxb-2.2</feature>
+        <feature>jsf-2.3</feature>
+        <feature>jaxrs-2.1</feature>
+        <feature>ejbLite-3.2</feature>
+        <feature>jpa-2.2</feature>
+        <feature>jms-2.0</feature>
+        <feature>wasJmsClient-2.0</feature>
+        <feature>wasJmsSecurity-1.0</feature>
+        <feature>wasJmsServer-1.0</feature>
+        <feature>jndi-1.0</feature>
+        <feature>mdb-3.2</feature>
+    </featureManager>
+
+    <!-- Define http & https endpoints -->
+    <httpEndpoint id="defaultHttpEndpoint" host="*"
+        httpPort="9080" httpsPort="9443" />
+
+    
+    <variable name="app.context.root" defaultValue="guide-sessions"/>
+
+    <!-- Automatically expand WAR files and EAR files -->
+    <applicationManager autoExpand="true" />
+
+    <!-- Define web application with its context root and location -->
+    <webApplication id="cargo-tracker" contextRoot="/"
+        location="${server.config.dir}/apps/cargo-tracker.war">
+    </webApplication>
+
+    <dataSource id="CargoTrackerDB" jndiName="jdbc/CargoTrackerDB">
+        <jdbcDriver libraryRef="driver-library" />
+        <properties.postgresql
+            serverName="${db.server.name}"
+            portNumber="${db.port.number}"
+            databaseName="${db.name}"
+            user="${db.user}"
+            password="${db.password}"
+            ssl="${db.ssl}" />
+    </dataSource>
+    <variable name="db.ssl" defaultValue="false"/>
+
+    <library id="driver-library">
+        <fileset dir="${shared.resource.dir}" includes="*.jar" />
+    </library>
+
+    <messagingEngine>
+        <queue id="MisdirectedCargoQueue"/>
+        <queue id="CargoHandledQueue"/>
+        <queue id="RejectedRegistrationAttemptsQueue"/>
+        <queue id="HandlingEventRegistrationAttemptQueue"/>
+        <queue id="DeliveredCargoQueue"/>
+    </messagingEngine>
+
+    <jmsQueue id="jms/MisdirectedCargoQueue" jndiName="jms/MisdirectedCargoQueue">
+        <properties.wasJms queueName="MisdirectedCargoQueue"/>
+    </jmsQueue>
+    <jmsQueue id="jms/CargoHandledQueue" jndiName="jms/CargoHandledQueue">
+        <properties.wasJms queueName="CargoHandledQueue"/>
+    </jmsQueue>
+    <jmsQueue id="jms/RejectedRegistrationAttemptsQueue" jndiName="jms/RejectedRegistrationAttemptsQueue">
+        <properties.wasJms queueName="RejectedRegistrationAttemptsQueue"/>
+    </jmsQueue>
+    <jmsQueue id="jms/HandlingEventRegistrationAttemptQueue" jndiName="jms/HandlingEventRegistrationAttemptQueue">
+        <properties.wasJms queueName="HandlingEventRegistrationAttemptQueue"/>
+    </jmsQueue>
+    <jmsQueue id="jms/DeliveredCargoQueue" jndiName="jms/DeliveredCargoQueue">
+        <properties.wasJms queueName="DeliveredCargoQueue"/>
+    </jmsQueue>
+
+    <jmsActivationSpec id="cargo-tracker/MisdirectedCargoConsumer">
+        <properties.wasJms
+                destinationRef="jms/MisdirectedCargoQueue"
+                destinationType="javax.jms.Queue"
+        />
+    </jmsActivationSpec>
+    <jmsActivationSpec id="cargo-tracker/CargoHandledConsumer">
+        <properties.wasJms
+                destinationRef="jms/CargoHandledQueue"
+                destinationType="javax.jms.Queue"
+        />
+    </jmsActivationSpec>
+    <jmsActivationSpec id="cargo-tracker/RejectedRegistrationAttemptsConsumer">
+        <properties.wasJms
+                destinationRef="jms/RejectedRegistrationAttemptsQueue"
+                destinationType="javax.jms.Queue"
+        />
+    </jmsActivationSpec>
+    <jmsActivationSpec id="cargo-tracker/HandlingEventRegistrationAttemptConsumer">
+        <properties.wasJms
+                destinationRef="jms/HandlingEventRegistrationAttemptQueue"
+                destinationType="javax.jms.Queue"
+        />
+    </jmsActivationSpec>
+    <jmsActivationSpec id="cargo-tracker/DeliveredCargoConsumer">
+        <properties.wasJms
+                destinationRef="jms/DeliveredCargoQueue"
+                destinationType="javax.jms.Queue"
+        />
+    </jmsActivationSpec>
+</server>

@@ -8,7 +8,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
   * [Introduction](#introduction)
   * [Prerequisites](#prerequisites)
   * [Unit-1 - Deploy and monitor Cargo Tracker](#unit-1---deploy-and-monitor-cargo-tracker)
-    * [Clone and build Cargo Tracker](#clone-and-build-cargo-tracker)
+    * [Clone Cargo Tracker](#clone-cargo-tracker)
     * [Prepare your variables for deployments](#prepare-your-variables-for-deployments)
     * [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
     * [Sign in to Azure](#sign-in-to-azure)
@@ -58,6 +58,126 @@ In this quickstart, you will:
   - [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
   - [Maven](https://maven.apache.org/download.cgi). use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.3.
 
+## Unit-1 - Deploy and monitor Cargo Tracker
+
+### Clone Cargo Tracker
+
+Clone the sample app repository to your development environment.
+
+```bash
+mkdir cargotracker-liberty-aks
+DIR="$PWD/cargotracker-liberty-aks"
+
+git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
+```
+
+### Prepare your variables for deployments
+
+Create a bash script with environment variables by making a copy of the supplied template:
+
+```bash
+cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+```
+
+Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following information. Make sure your Oracle SSO user name and password are correct.
+
+```bash
+export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
+export RESOURCE_GROUP_NAME="abc1110rg" # customize this
+export DB_SERVER_NAME="libertydb$(date +%s)" # PostgreSQL server name
+export DB_PASSWORD="Secret123456" # PostgreSQL database password
+```
+
+Then, set the environment:
+
+```bash
+source ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+```
+
+### Clone Liberty on AKS Bicep templates
+
+```bash
+git clone https://github.com/WASdev/azure.liberty.aks ${DIR}/azure.liberty.aks
+
+cd ${DIR}/azure.liberty.aks
+git checkout ${LIBERTY_AKS_REPO_REF}
+
+cd ${DIR}
+```
+
+### Sign in to Azure
+
+If you haven't already, sign in to your Azure subscription by using the `az login` command and follow the on-screen directions.
+
+```bash
+az login
+```
+
+If you have multiple Azure tenants associated with your Azure credentials, you must specify which tenant you want to sign in to. You can do this with the `--tenant` option. For example, `az login --tenant contoso.onmicrosoft.com`.
+
+### Create a resource group
+
+Create a resource group with `az group create`. Resource group names must be globally unique within a subscription.
+
+```bash
+az group create \
+    --name ${RESOURCE_GROUP_NAME} \
+    --location eastus
+```
+
+### Create an Azure Database for PostgreSQL instance
+
+Use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
+
+```bash
+az postgres server create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --name ${DB_SERVER_NAME}  \
+  --location eastus \
+  --admin-user liberty \
+  --ssl-enforcement Disabled \
+  --public-network-access Enabled \
+  --admin-password ${DB_PASSWORD} \
+  --sku-name B_Gen5_1
+
+  echo "Allow Access To Azure Services"
+  az postgres server firewall-rule create \
+  -g ${RESOURCE_GROUP_NAME} \
+  -s ${DB_SERVER_NAME} \
+  -n "AllowAllWindowsAzureIps" \
+  --start-ip-address "0.0.0.0" \
+  --end-ip-address "0.0.0.0"
+```
+
+Obtain the JDBC connection string, which will be used as a deployment parameter.
+
+```bash
+DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
+```
+
+### Prepare deployment parameters
+
+Several parameters are required to invoke the Bicep templates. Parameters and their value are listed in the table. Make sure the variables have correct value.
+
+| Parameter Name | Value | Note |
+|----------------|-------|------|
+
+
+### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
+
+### Create Application Insights
+
+### Build and deploy Cargo Tracker
+
+### Monitor Liberty application
+
+#### Use Cargo Tracker and make a few HTTP calls
+
+#### Start monitoring Cargo Tracker in Application Insights
+
+#### Start monitoring Liberty logs in Azure Log Analytics
+
+#### Start monitoring Cargo Tracker logs in Azure Log Analytics
 
 ## Unit-2 - Automate deployments using GitHub Actions
 

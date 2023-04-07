@@ -1,57 +1,65 @@
-# Open Liberty Cargo Tracker Application Deployed to Azure Kubernetes Service (AKS)
+# Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)
 
-## Description
+This quickstart shows you how to deploy an existing Liberty application to AKS using Liberty on AKS solution templates. When you're finished, you can continue to manage the application via the Azure CLI or Azure Portal.
 
-This is a sample app template of the Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). The app template uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Load Balancer service via Public IP address.
+Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This quickstart uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Load Balancer service via Public IP address.
 
-## Deploy Open Liberty Application to Azure Kubernetes Service:
-
---
-Tech stack:
-
-- Azure Container Registry
-- Azure Kubernetes Service
-- Azure PostgreSQL DB
-- GitHub Actions
-- Bicep
-- Docker
-- Maven
-- Java
-
----
+* [Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)]()
+  * [Introduction](#introduction)
+  * [Prerequisites](#prerequisites)
+  * [Unit-1 - Deploy and monitor Cargo Tracker](#unit-1---deploy-and-monitor-cargo-tracker)
+    * [Clone and build Cargo Tracker](#clone-and-build-cargo-tracker)
+    * [Prepare your variables for deployments](#prepare-your-variables-for-deployments)
+    * [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
+    * [Sign in to Azure](#sign-in-to-azure)
+    * [Create a resource group](#create-a-resource-group)
+    * [Create an Azure Database for PostgreSQL instance](#create-an-azure-database-for-postgresql-instance)
+    * [Prepare deployment parameters](#prepare-deployment-parameters)
+    * [Invoke Liberty on AKS Bicep template to deploy the application](#invoke-liberty-on-aks-bicep-template-to-deploy-the-application)
+    * [Monitor WebLogic application](#monitor-weblogic-application)
+      * [Create Application Insights](#create-application-insights)
+      * [Use Cargo Tracker and make a few HTTP calls](#use-cargo-tracker-and-make-a-few-http-calls)
+      * [Start monitoring Cargo Tracker in Application Insights](#start-monitoring-cargo-tracker-in-application-insights)
+      * [Start monitoring Liberty logs in Azure Log Analytics](#start-monitoring-liberty-logs-in-azure-log-analytics)
+      * [Start monitoring Cargo Tracker logs in Azure Log Analytics](#start-monitoring-cargo-tracker-logs-in-azure-log-analytics)
+  * [Unit-2 - Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions)
+  * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
+  * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
 
 ## Introduction
 
-This is a quickstart template. It deploys the following:
+In this quickstart, you will:
 
-* Deploying Cargo Tracker App:
+* Deploying Cargo Tracker:
   * Create ProgresSQL Database
   * Create the Cargo Tracker - build with Maven
-  * Provisioning Azure Infra Services with ARM templates - build with BICEP
+  * Provisioning Azure Infra Services with BICEP templates
     * Create an Azure Container Registry
     * Create an Azure Kubernetes Service
-    * Build your app, Open Liberty into an image
-    * Push your app image to the container registry
-    * Deploy your app to AKS
-    * Expose your app with the Azure Load Balancer service
-  * Verify your app
-
-* Cargo Tracker on Automated CI/CD with GitHub Action
-  * CI/CD on GitHub Action
-  * CI/CD in action with the app
-
-> Refer to the [App Templates](https://github.com/microsoft/App-Templates) repo Readme for more samples that are compatible with [AzureAccelerators](https://github.com/Azure/azure-dev/).
+    * Build your application, Open Liberty into an image
+    * Push your application image to the container registry
+    * Deploy your application to AKS
+    * Expose your application with the Azure Load Balancer service
+  * Verify your application
+  * Monitor application
+  * Automate deployments using GitHub Actions
 
 ## Prerequisites
 
-- Local shell with Azure CLI installed or [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/)
+- Local shell with Azure CLI 2.46.0 and above or [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/)
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
-- GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
+  - Your subscription is accessed using an Azure Service Principal with at least **Contributor** and **User Access Administrator** permissions.
+- We strongly recommend you use Azure Cloud Shell. For local shell, make sure you have installed the following tools.
+  - A Java JDK, Version 11. Azure recommends [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download). Ensure that your JAVA_HOME environment.
+  - [Git](https://git-scm.com/downloads). use git --version to test whether git works. This tutorial was tested with version 2.25.1.
+  - GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
+  - [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
+  - [Maven](https://maven.apache.org/download.cgi). use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.3.
 
 
-## Getting Started
+## Unit-2 - Automate deployments using GitHub Actions
 
 1. Fork the repository by clicking the 'Fork' button on the top right of the page.
 This creates a local copy of the repository for you to work in. 
@@ -69,11 +77,11 @@ This creates a local copy of the repository for you to work in.
 
 5. Click Run workflow.
 
-## Workflow description
+### Workflow description
 
 As mentioned above, the app template uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The workflow uses the source code behind that offer by checking it out and invoking it from Azure CLI.
 
-### Job: preflight
+#### Job: preflight
 
 This job is to build Liberty on AKS template into a ZIP file containing the ARM template to invoke.
 
@@ -95,7 +103,7 @@ This job is to build Liberty on AKS template into a ZIP file containing the ARM 
 
   + Archive Archive azure.liberty.aks template template. Upload the ZIP file to the pipeline. The later jobs will download the ZIP file for further deployments.
 
-### Job: deploy-db
+#### Job: deploy-db
 
 This job is to deploy PostgreSQL server and configure firewall setting.
 
@@ -104,7 +112,7 @@ This job is to deploy PostgreSQL server and configure firewall setting.
   + Create Resource Group. Create a resource group to which the database will deploy.
   + Set Up Azure Postgresql to Test dbTemplate. Provision Azure Database for PostgreSQL Single Server. The server allows access from Azure services.
 
-### Job: deploy-openliberty-on-aks
+#### Job: deploy-openliberty-on-aks
 
 This job is to provision Azure resources, run Open Liberty Operator on AKS using the solution template.
 
@@ -124,7 +132,7 @@ This job is to provision Azure resources, run Open Liberty Operator on AKS using
     + An Azure Container Registry. It'll store app image in the later steps.
     + An Azure Kubernetes Service with Open Liberty Operator running in `default` namespace.
 
-### Job: deploy-cargo-tracke
+#### Job: deploy-cargo-tracke
 
 This job is to build app, push it to ACR and apply it to Open Liberty server running on AKS.
 
@@ -145,17 +153,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + Verify that the app is update. Make sure cargo tracker is running by validating its version string.
   + Print app URL. Print the cargo tracker URL to pipeline summary page. Now you'are able to access cargo tracker with the URL from your browser.
 
-## Cargo Tracker Website
-
-![Cargo Tracker Website](cargo_tracker_website.png)
-
-If you wish to view the Cargo Tracker Deployment, you have the following options:
-
-- Open the pipeline "Setup OpenLiberty on AKS". You will find the **Summary** page.
-- Scroll down to **deploy-cargo-tracker summary**, you'll find the app URL.
-- Open your web browser, navigate to the application URL, you will see the Cargo Tracker landing page.
-
-## Exercise Cargo Tracker Functionality
+## Appendix 1 - Exercise Cargo Tracker Functionality
 
 1. On the main page, select **Public Tracking Interface** in new window. 
 
@@ -185,6 +183,6 @@ If you wish to view the Cargo Tracker Deployment, you have the following options
 
 1. If desired, go back to **Mobile Event Logger** and continue performing the next activity.
 
-## Learn more about Cargo Tracker
+## LAppendix 2 - Learn more about Cargo Tracker
 
 See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](cargo-tracker.md)

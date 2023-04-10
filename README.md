@@ -79,7 +79,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
 ```
 
-Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following information. Make sure your Oracle SSO user name and password are correct.
+Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following information.
 
 ```bash
 export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
@@ -123,12 +123,6 @@ Create a resource group with `az group create`. Resource group names must be glo
 az group create \
     --name ${RESOURCE_GROUP_NAME} \
     --location eastus
-```
-
-Obtain the JDBC connection string, which will be used as a deployment parameter.
-
-```bash
-DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
 ```
 
 ### Prepare deployment parameters
@@ -234,6 +228,12 @@ az postgres server create \
   -n "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
+```
+
+Obtain the JDBC connection string, which will be used as a deployment parameter.
+
+```bash
+DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
 ```
 
 ### Create Application Insights

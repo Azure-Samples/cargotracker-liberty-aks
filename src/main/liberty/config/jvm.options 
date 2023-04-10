@@ -1,0 +1,3 @@
+# https://www.ibm.com/docs/en/was-liberty/core?topic=manually-customizing-liberty-environment
+
+-javaagent:/opt/ol/wlp/usr/shared/resources/applicationinsights-agent-3.4.11.jar

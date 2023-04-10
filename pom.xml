@@ -353,6 +353,7 @@
                 <param.db.password>${env.DB_PASSWORD}</param.db.password>
                 <param.namespace>${env.NAMESPACE}</param.namespace>
                 <param.replicas>1</param.replicas>
+                <param.app.insight.connection.string>${env.APPLICATIONINSIGHTS_CONNECTION_STRING}</param.app.insight.connection.string>
             </properties>
             <dependencies>
                 <dependency>
@@ -377,6 +378,18 @@
                     <artifactId>postgresql</artifactId>
                     <version>42.2.4</version>
                     <type>jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.2.4</version>
+                    <type>jar</type>
+                </dependency>
+                <!-- https://mvnrepository.com/artifact/com.microsoft.azure/applicationinsights-agent -->
+                <dependency>
+                    <groupId>com.microsoft.azure</groupId>
+                    <artifactId>applicationinsights-agent</artifactId>
+                    <version>3.4.11</version>
                 </dependency>
             </dependencies>
             <build>
@@ -431,6 +444,17 @@
                                 </goals>
                                 <configuration>
                                     <includeArtifactIds>postgresql</includeArtifactIds>
+                                    <outputDirectory>${project.build.directory}/liberty/wlp/usr/shared/resources</outputDirectory>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-app-insights-agent</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeArtifactIds>applicationinsights-agent</includeArtifactIds>
                                     <outputDirectory>${project.build.directory}/liberty/wlp/usr/shared/resources</outputDirectory>
                                 </configuration>
                             </execution>

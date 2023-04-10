@@ -36,3 +36,8 @@ spec:
       secretKeyRef:
         name: db-secret-sql
         key: db.password
+  - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+    valueFrom:
+      secretKeyRef:
+        name: app-insight-secret
+        key: connection.string

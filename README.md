@@ -125,6 +125,93 @@ az group create \
     --location eastus
 ```
 
+Obtain the JDBC connection string, which will be used as a deployment parameter.
+
+```bash
+DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
+```
+
+### Prepare deployment parameters
+
+Several parameters are required to invoke the Bicep templates. Parameters and their value are listed in the table. Make sure the variables have correct value.
+
+| Parameter Name | Value | Note |
+|----------------|-------|------|
+| `_artifactsLocation ` | `https://raw.githubusercontent.com/WASdev/azure.liberty.aks/${LIBERTY_AKS_REPO_REF}/src/main/` | This quickstart is using templates and scripts from `WASdev/azure.liberty.aks/${LIBERTY_AKS_REPO_REF}`. | 
+| `createCluster` | `true` | This value causes provisioning of Azure Kubernetes Service. |
+| `vmSize` | `Standard_DS2_v2` | VM size of AKS node. |
+| `minCount` | `1` | Minimum count of AKS nodes. |
+| `maxCount` | `5` | Maximum count of AKS nodes. |
+| `createACR` | `true` | This value causes provisioning of Azure Container Registry. |
+| `deployApplication` | `false` | The application will be deployed on later section. |
+
+Create parameter file.
+
+```bash
+cat <<EOF >parameters.json
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "_artifactsLocation": {
+        "value": "https://raw.githubusercontent.com/WASdev/azure.liberty.aks/${LIBERTY_AKS_REPO_REF}/src/main/"
+    },
+    "location": {
+        "value": "eastus"
+    },
+    "createCluster": {
+        "value": true
+    },
+    "vmSize": {
+        "value": "Standard_DS2_v2"
+    },
+    "minCount": {
+        "value": 1
+    },
+    "maxCount": {
+        "value": 5
+    },
+    "createACR": {
+        "value": true
+    },
+    "deployApplication": {
+        "value": false
+    }
+  }
+}
+EOF
+```
+
+### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
+
+Invoke the Bicep template in ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep to deploy Open Liberty Operator on AKS.
+
+Run the following command to validate the parameter file.
+
+```bash
+az deployment group validate \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --name wls-on-aks \
+  --parameters @parameters.json \
+  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+```
+
+The command should complete without error. If there is, you must resolve it before moving on.
+
+Next, invoke the template.
+
+```bash
+az deployment group create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --name wls-on-aks \
+  --parameters @parameters.json \
+  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+```
+
+It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
+
+If you are using Azure Cloud Shell, the terminal may have been disconnected, run source <path-to>/cargotracker/.scripts/setup-env-variables.sh to set the variables.
+
 ### Create an Azure Database for PostgreSQL instance
 
 Use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
@@ -149,23 +236,32 @@ az postgres server create \
   --end-ip-address "0.0.0.0"
 ```
 
-Obtain the JDBC connection string, which will be used as a deployment parameter.
+### Create Application Insights
+
+To integrate with Application Insights, you need to have an Application Insights instance and expose metrics to it using the Java agent.
+
+First, install or upgrade `application-insights` extension.
 
 ```bash
-DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
+az extension add --upgrade -n application-insights
 ```
 
-### Prepare deployment parameters
+Next, provision Application Insights.
 
-Several parameters are required to invoke the Bicep templates. Parameters and their value are listed in the table. Make sure the variables have correct value.
+```bash
+az monitor app-insights component create \
+  --app appinsightlibertyakscargotracker \
+  --location eastus \
+  --resource-group ${RESOURCE_GROUP_NAME}
+```
 
-| Parameter Name | Value | Note |
-|----------------|-------|------|
+Obtain the connection string of Application Insights which will be used in later section.
 
-
-### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
-
-### Create Application Insights
+```bash
+APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --query '[0].connectionString' -o tsv)
+```
 
 ### Build and deploy Cargo Tracker
 

@@ -5,4 +5,4 @@ metadata:
   namespace: ${param.namespace}
 type: Opaque
 stringData:  
-  connection.string: ${param.app.insight.connection.string}
+  connection.string: "${param.app.insight.connection.string}"

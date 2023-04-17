@@ -46,18 +46,17 @@ In this quickstart, you will:
 
 ## Prerequisites
 
-- Local shell with Azure CLI 2.46.0 and above or [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/)
+- Local shell with Azure CLI 2.46.0 and above.
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
   - Your subscription is accessed using an Azure Service Principal with at least **Contributor** and **User Access Administrator** permissions.
-- We strongly recommend you use Azure Cloud Shell. For local shell, make sure you have installed the following tools.
-  - A Java JDK, Version 11. Azure recommends [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download). Ensure that your JAVA_HOME environment.
-  - [Git](https://git-scm.com/downloads). use git --version to test whether git works. This tutorial was tested with version 2.25.1.
-  - GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
-  - [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
-  - [Maven](https://maven.apache.org/download.cgi). Use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.3.
-  - [Docker](https://www.docker.com/). Use `docker -v` to test whether `docker` works. This tutorial was tested with version 20.10.7.
+- A Java JDK, Version 11. Azure recommends [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download). Ensure that your JAVA_HOME environment.
+- [Git](https://git-scm.com/downloads). use git --version to test whether git works. This tutorial was tested with version 2.25.1.
+- GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
+- [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
+- [Maven](https://maven.apache.org/download.cgi). Use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.9.
+- [Docker](https://www.docker.com/). Use `docker ps` to test whether docker daemon works. This tutorial was tested with version 20.10.7.
 
 ## Unit-1 - Deploy and monitor Cargo Tracker
 
@@ -85,8 +84,13 @@ Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following
 ```bash
 export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
 export RESOURCE_GROUP_NAME="abc1110rg" # customize this
-export DB_SERVER_NAME="libertydb$(date +%s)" # PostgreSQL server name
+export DB_RESOURCE_NAME="libertydb$(date +%s)" # PostgreSQL server name
+export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
+export DB_PORT_NUMBER=5432
+export DB_NAME=postgres
+export DB_USER=liberty@${DB_RESOURCE_NAME}
+export NAMESPACE=default
 ```
 
 Then, set the environment:
@@ -214,7 +218,7 @@ Use `az postgres server create` to provision a PostgreSQL instance on Azure. The
 ```bash
 az postgres server create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --name ${DB_SERVER_NAME}  \
+  --name ${DB_RESOURCE_NAME}  \
   --location eastus \
   --admin-user liberty \
   --ssl-enforcement Disabled \
@@ -225,7 +229,7 @@ az postgres server create \
   echo "Allow Access To Azure Services"
   az postgres server firewall-rule create \
   -g ${RESOURCE_GROUP_NAME} \
-  -s ${DB_SERVER_NAME} \
+  -s ${DB_RESOURCE_NAME} \
   -n "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
@@ -234,7 +238,7 @@ az postgres server create \
 Obtain the JDBC connection string, which will be used as a deployment parameter.
 
 ```bash
-DB_CONNECTION_STRING="jdbc:postgresql://${DB_SERVER_NAME}.postgres.database.azure.com:5432/postgres"
+DB_CONNECTION_STRING="jdbc:postgresql://${DB_RESOURCE_NAME}.postgres.database.azure.com:5432/postgres"
 ```
 
 ### Create Application Insights
@@ -267,7 +271,7 @@ export APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component
 ### Build and deploy Cargo Tracker
 
 ```bash
-export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query `[0].name` -o tsv)
+export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query '[0].name' -o tsv)
 export LOGIN_SERVER=$(az acr show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
 export USER_NAME=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
 export PASSWORD=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
@@ -275,6 +279,44 @@ export PASSWORD=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP
 
 ```bash
   mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
+```
+
+```bash
+IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
+IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
+
+docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=${DIR}/cargotracker/target/Dockerfile ${DIR}/cargotracker/target
+docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION}
+
+docker login -u ${USER_NAME} -p ${PASSWORD} ${LOGIN_SERVER}
+docker push ${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION}
+```
+
+```bash
+AKS_NAME=$(az resource list \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --query "[?type=='Microsoft.ContainerService/managedClusters'].name|[0]" \
+  -o tsv)
+
+az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
+```
+
+```bash
+kubectl apply -f ${DIR}/cargotracker/target/db-secret.yaml
+kubectl apply -f ${DIR}/cargotracker/target/app-insight.yaml
+kubectl apply -f ${DIR}/cargotracker/target/openlibertyapplication.yaml
+
+kubectl get pod -w
+```
+
+Get URL to access Cargo Tracker.
+
+```bash
+EXTERNAL_IP=$(kubectl get service -o json | jq -r '.items[] | select(.metadata.name=="cargo-tracker-cluster") | .status.loadBalancer.ingress[0].ip')
+
+APP_URL="http://${EXTERNAL_IP}:9080/cargo-tracker/"
+
+echo ${APP_URL}
 ```
 
 ### Monitor Liberty application

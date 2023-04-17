@@ -27,7 +27,7 @@
     <applicationManager autoExpand="true" />
 
     <!-- Define web application with its context root and location -->
-    <webApplication id="cargo-tracker" contextRoot="/"
+    <webApplication id="cargo-tracker" contextRoot="/cargo-tracker"
         location="${server.config.dir}/apps/cargo-tracker.war">
     </webApplication>
 
@@ -44,7 +44,7 @@
     <variable name="db.ssl" defaultValue="false"/>
 
     <library id="driver-library">
-        <fileset dir="${shared.resource.dir}" includes="*.jar" />
+        <fileset dir="${shared.resource.dir}" includes="postgresql-42.2.4.jar" />
     </library>
 
     <messagingEngine>

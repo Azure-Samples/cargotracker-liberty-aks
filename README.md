@@ -56,7 +56,8 @@ In this quickstart, you will:
   - [Git](https://git-scm.com/downloads). use git --version to test whether git works. This tutorial was tested with version 2.25.1.
   - GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
   - [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
-  - [Maven](https://maven.apache.org/download.cgi). use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.3.
+  - [Maven](https://maven.apache.org/download.cgi). Use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.3.
+  - [Docker](https://www.docker.com/). Use `docker -v` to test whether `docker` works. This tutorial was tested with version 20.10.7.
 
 ## Unit-1 - Deploy and monitor Cargo Tracker
 
@@ -258,12 +259,23 @@ az monitor app-insights component create \
 Obtain the connection string of Application Insights which will be used in later section.
 
 ```bash
-APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show \
+export APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --query '[0].connectionString' -o tsv)
 ```
 
 ### Build and deploy Cargo Tracker
+
+```bash
+export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query `[0].name` -o tsv)
+export LOGIN_SERVER=$(az acr show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
+export USER_NAME=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
+export PASSWORD=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
+```
+
+```bash
+  mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
+```
 
 ### Monitor Liberty application
 

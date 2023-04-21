@@ -46,17 +46,20 @@ In this quickstart, you will:
 
 ## Prerequisites
 
-- Local shell with Azure CLI 2.46.0 and above.
+- [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/). This quickstart was tested with:
+  - JDK: openjdk version "11.0.18" 2023-01-17 LTS.
+  - GIT: git version 2.33.6.
+  - Kubernetes CLI version as following:
+
+     ```bash
+     Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
+     Kustomize Version: v4.5.7
+     ```
+  - Maven: Apache Maven 3.8.7 (NON_CANONICAL).
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
   - Your subscription is accessed using an Azure Service Principal with at least **Contributor** and **User Access Administrator** permissions.
-- A Java JDK, Version 11. Azure recommends [Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download). Ensure that your JAVA_HOME environment.
-- [Git](https://git-scm.com/downloads). use git --version to test whether git works. This tutorial was tested with version 2.25.1.
-- GitHub CLI (optional, but strongly recommended). To install the GitHub CLI on your dev environment, see [Installation](https://cli.github.com/manual/installation).
-- [Kubernetes CLI](https://kubernetes-io-vnext-staging.netlify.com/docs/tasks/tools/install-kubectl/); use `kubectl version` to test if `kubectl` works. This document was tested with version v1.21.1.
-- [Maven](https://maven.apache.org/download.cgi). Use `mvn -version` to test whether `mvn` works. This tutorial was tested with version 3.6.9.
-- [Docker](https://www.docker.com/). Use `docker ps` to test whether docker daemon works. This tutorial was tested with version 20.10.7.
 
 ## Unit-1 - Deploy and monitor Cargo Tracker
 
@@ -284,12 +287,11 @@ export PASSWORD=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP
 ```bash
 IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
 IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
+```
 
-docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=${DIR}/cargotracker/target/Dockerfile ${DIR}/cargotracker/target
-docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION}
-
-docker login -u ${USER_NAME} -p ${PASSWORD} ${LOGIN_SERVER}
-docker push ${LOGIN_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION}
+```bash
+cd ${DIR}/cargotracker/target
+az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 ```
 
 ```bash

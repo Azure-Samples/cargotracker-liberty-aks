@@ -19,8 +19,7 @@
     <!-- Define http & https endpoints -->
     <httpEndpoint id="defaultHttpEndpoint" host="*"
         httpPort="9080" httpsPort="9443" />
-
-    
+ 
     <variable name="app.context.root" defaultValue="guide-sessions"/>
 
     <!-- Automatically expand WAR files and EAR files -->
@@ -44,7 +43,7 @@
     <variable name="db.ssl" defaultValue="false"/>
 
     <library id="driver-library">
-        <fileset dir="${shared.resource.dir}" includes="postgresql-42.2.4.jar" />
+        <fileset dir="${shared.resource.dir}" includes="postgresql.jar" />
     </library>
 
     <messagingEngine>

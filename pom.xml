@@ -349,7 +349,7 @@
                 <param.db.user>${env.DB_USER}</param.db.user>
                 <param.db.password>${env.DB_PASSWORD}</param.db.password>
                 <param.namespace>${env.NAMESPACE}</param.namespace>
-                <param.replicas>1</param.replicas>
+                <param.replicas>3</param.replicas>
                 <param.app.insight.connection.string>${env.APPLICATIONINSIGHTS_CONNECTION_STRING}</param.app.insight.connection.string>
             </properties>
             <dependencies>

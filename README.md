@@ -254,13 +254,25 @@ First, install or upgrade `application-insights` extension.
 az extension add --upgrade -n application-insights
 ```
 
+Create a 
+
+```bash
+az monitor log-analytics workspace create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --workspace-name loganalyticslibertyakscargotracker \
+  --location eastus
+
+WORKSPACE_ID=$(az monitor log-analytics workspace list -g abc1110rg --query '[0].id' -o tsv)
+```
+
 Next, provision Application Insights.
 
 ```bash
 az monitor app-insights component create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
   --app appinsightlibertyakscargotracker \
   --location eastus \
-  --resource-group ${RESOURCE_GROUP_NAME}
+  --workspace ${WORKSPACE_ID}
 ```
 
 Obtain the connection string of Application Insights which will be used in later section.
@@ -345,9 +357,93 @@ APP_URL="http://${EXTERNAL_IP}:9080/cargo-tracker/"
 echo ${APP_URL}
 ```
 
+Now, Cargo Tracker is running on Open Liberty, and connecting to Application Insights. You are able to monitor the application.
+
 ### Monitor Liberty application
 
+This section uses Application Insights and Azure Log Analytics to monitor Open Liberty and Cargo Tracker. You can find the resource from your working resource group.
+
 #### Use Cargo Tracker and make a few HTTP calls
+
+You can open Cargo Tracker in your web browser and follow [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality) to make some calls.
+
+Use the following commands to obtain URL of Cargo Tracker:
+
+```bash
+GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
+
+GATEWAY_URL=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
+
+CARGO_TRACKER_URL="http://${GATEWAY_URL}/cargo-tracker/"
+
+echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
+```
+
+You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with above exercise.
+
+The `/graph-traversal/shortest-path` REST API allows you to retrieve shortest path from origin to destination.
+
+The API requires the following parameters:
+
+| Parameter Name | Value |
+| ------------------| ----------------- |
+| `origin` | The UN location code value of origin and destination must be five characters long, the first two must be alphabetic and the last three must be alphanumeric (excluding 0 and 1). |
+| `destination` | The UN location code value of origin and destination must be five characters long, the first two must be alphabetic and the last three must be alphanumeric (excluding 0 and 1). |
+| `deadline` | **Optional**. Deadline value must be eight characters long. |
+
+You can run the following curl command:
+
+```bash
+curl -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
+```
+
+The `/handling/reports` REST API allows you to sends an asynchronous message with the information to the handling event registration system for proper registration.
+
+The API requires the following parameters:
+
+| Parameter Name | Value |
+| ------------------| ----------------- |
+| `completionTime` | Must be ClockHourOfAmPm. Format: `m/d/yyyy HH:MM tt`, e.g `3/29/2023 9:30 AM` |
+| `trackingId` | Tracking ID must be at least four characters. |
+| `eventType` | Event type value must be one of: RECEIVE, LOAD, UNLOAD, CUSTOMS, CLAIM. |
+| `unLocode` | The UN location code value of origin and destination must be five characters long, the first two must be alphabetic and the last three must be alphanumeric (excluding 0 and 1). |
+| `voyageNumber` | **Optional**. Voyage number value must be between four and five characters long. |
+
+You can run the following `curl` command to load onto voyage 0200T in New York for trackingId of `ABC123`:
+
+```bash
+DATE=$(date +'%m/%d/%Y %I:%M %p')
+cat <<EOF >data.json
+{
+  "completionTime": "${DATE}",
+  "trackingId": "ABC123",
+  "eventType": "UNLOAD",
+  "unLocode": "USNYC",
+  "voyageNumber": "0200T"
+}
+EOF
+
+curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
+```
+
+You can use Application Insights to detect failures. Run the following `curl` command to cause a failed call. The REST API fails at incorrect datetime format.
+
+```bash
+DATE=$(date +'%m/%d/%Y %H:%M:%S')
+cat <<EOF >data.json
+{
+  "completionTime": "${DATE}",
+  "trackingId": "ABC123",
+  "eventType": "UNLOAD",
+  "unLocode": "USNYC",
+  "voyageNumber": "0200T"
+}
+EOF
+
+curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
+```
 
 #### Start monitoring Cargo Tracker in Application Insights
 

@@ -5,12 +5,13 @@
 <h:head>
     <title>Change Deadline</title>
 </h:head>
-<f:metadata>
-    <f:viewParam name="trackingId"
-                 value="#{changeArrivalDeadline.trackingId}"/>
-    <f:viewAction action="#{changeArrivalDeadline.load}"/>
-</f:metadata>
-<h:body>
+<body>
+    <f:metadata>
+        <f:viewParam name="trackingId"
+                     value="#{changeArrivalDeadline.trackingId}"/>
+        <f:viewAction action="#{changeArrivalDeadline.load}"/>
+    </f:metadata>
+
     <div class="ui-g full-page">
         <h:form>
             <h:panelGrid columns="2" cellpadding="15">
@@ -34,5 +35,5 @@
             </h:panelGrid>
         </h:form>
     </div>
-</h:body>
+</body>
 </html>

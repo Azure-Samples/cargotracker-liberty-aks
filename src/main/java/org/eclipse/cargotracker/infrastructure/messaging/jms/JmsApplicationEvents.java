@@ -7,12 +7,10 @@ import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.jms.Destination;
-import javax.jms.JMSConnectionFactory;
 import javax.jms.JMSContext;
 import org.eclipse.cargotracker.application.ApplicationEvents;
 import org.eclipse.cargotracker.domain.model.cargo.Cargo;
 import org.eclipse.cargotracker.domain.model.handling.HandlingEvent;
-import org.eclipse.cargotracker.infrastructure.messaging.JmsQueueNames;
 import org.eclipse.cargotracker.interfaces.handling.HandlingEventRegistrationAttempt;
 
 @ApplicationScoped
@@ -20,20 +18,18 @@ public class JmsApplicationEvents implements ApplicationEvents, Serializable {
 
   private static final long serialVersionUID = 1L;
   private static final int LOW_PRIORITY = 0;
-  @Inject 
-  @JMSConnectionFactory("java:comp/DefaultJMSConnectionFactory")
-  JMSContext jmsContext;
+  @Inject JMSContext jmsContext;
 
-  @Resource(lookup = JmsQueueNames.CARGO_HANDLED_QUEUE)
+  @Resource(lookup = "java:app/jms/CargoHandledQueue")
   private Destination cargoHandledQueue;
 
-  @Resource(lookup = JmsQueueNames.MISDIRECTED_CARGO_QUEUE)
+  @Resource(lookup = "java:app/jms/MisdirectedCargoQueue")
   private Destination misdirectedCargoQueue;
 
-  @Resource(lookup = JmsQueueNames.DELIVERED_CARGO_QUEUE)
+  @Resource(lookup = "java:app/jms/DeliveredCargoQueue")
   private Destination deliveredCargoQueue;
 
-  @Resource(lookup = JmsQueueNames.HANDLING_EVENT_REGISTRATION_ATTEMPT_QUEUE)
+  @Resource(lookup = "java:app/jms/HandlingEventRegistrationAttemptQueue")
   private Destination handlingEventQueue;
 
   @Inject private Logger logger;

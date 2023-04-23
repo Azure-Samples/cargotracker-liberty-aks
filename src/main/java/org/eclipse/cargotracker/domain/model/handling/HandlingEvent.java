@@ -48,7 +48,6 @@ public class HandlingEvent implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  
   @Id 
   @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
   @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")

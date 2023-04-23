@@ -29,7 +29,6 @@ public class CarrierMovement implements Serializable {
   public static final CarrierMovement NONE =
       new CarrierMovement(Location.UNKNOWN, Location.UNKNOWN, LocalDateTime.MIN, LocalDateTime.MIN);
 
-  
   @Id 
   @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
   @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")

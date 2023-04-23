@@ -2,34 +2,41 @@
 <server description="defaultServer">
     <!-- Enable features -->
     <featureManager>
-        <feature>cdi-2.0</feature>
-        <feature>jaxb-2.2</feature>
-        <feature>jsf-2.3</feature>
-        <feature>jaxrs-2.1</feature>
-        <feature>ejbLite-3.2</feature>
-        <feature>jpa-2.2</feature>
-        <feature>jms-2.0</feature>
         <feature>wasJmsClient-2.0</feature>
-        <feature>wasJmsSecurity-1.0</feature>
         <feature>wasJmsServer-1.0</feature>
+        <feature>jsonb-1.0</feature>
+        <feature>ejbLite-3.2</feature>
+        <feature>beanValidation-2.0</feature>
+        <feature>jsf-2.3</feature>
         <feature>jndi-1.0</feature>
+        <feature>cdi-2.0</feature>
+        <feature>jdbc-4.2</feature>
+        <feature>jms-2.0</feature>
+        <feature>ejbPersistentTimer-3.2</feature>
+        <feature>jaxrs-2.1</feature>
+        <feature>jaxb-2.2</feature>
         <feature>mdb-3.2</feature>
+        <feature>batch-1.0</feature>
+        <feature>jpa-2.2</feature>
     </featureManager>
 
     <!-- Define http & https endpoints -->
-    <httpEndpoint id="defaultHttpEndpoint" host="*"
-        httpPort="9080" httpsPort="9443" />
- 
-    <variable name="app.context.root" defaultValue="guide-sessions"/>
+    <variable defaultValue="9080" name="default.http.port" />
+    <variable defaultValue="9443" name="default.https.port" />
+    <httpEndpoint host="*" httpPort="${default.http.port}" httpsPort="${default.https.port}"
+        id="defaultHttpEndpoint" />
+    <wasJmsEndpoint host="*" id="InboundJmsCommsEndpoint" wasJmsPort="7276" wasJmsSSLPort="9100" />
 
-    <!-- Automatically expand WAR files and EAR files -->
-    <applicationManager autoExpand="true" />
+    <quickStartSecurity userName="usr" userPassword="pwd" />
+    <authorization-roles id="com.ibm.ws.batch">
+        <security-role name="batchAdmin">
+            <special-subject type="EVERYONE" />
+        </security-role>
+    </authorization-roles>
 
-    <!-- Define web application with its context root and location -->
-    <webApplication id="cargo-tracker" contextRoot="/cargo-tracker"
-        location="${server.config.dir}/apps/cargo-tracker.war">
-    </webApplication>
+    <connectionManager id="CargoCM" maxPoolSize="400" minPoolSize="1" />
 
+    <jdbcDriver id="dbDriver" libraryRef="driver-library" />
     <dataSource id="CargoTrackerDB" jndiName="jdbc/CargoTrackerDB">
         <jdbcDriver libraryRef="driver-library" />
         <properties.postgresql
@@ -40,64 +47,114 @@
             password="${db.password}"
             ssl="${db.ssl}" />
     </dataSource>
-    <variable name="db.ssl" defaultValue="false"/>
+    <variable name="db.ssl" defaultValue="false" />
 
     <library id="driver-library">
         <fileset dir="${shared.resource.dir}" includes="postgresql.jar" />
     </library>
 
-    <messagingEngine>
-        <queue id="MisdirectedCargoQueue"/>
-        <queue id="CargoHandledQueue"/>
-        <queue id="RejectedRegistrationAttemptsQueue"/>
-        <queue id="HandlingEventRegistrationAttemptQueue"/>
-        <queue id="DeliveredCargoQueue"/>
+    <databaseStore id="EJBPersistentTimerStore" keyGenerationStrategy="SEQUENCE" tablePrefix="WLP2_" />
+    <persistentExecutor enableTaskExecution="true" id="EJBPersistentTimerExecutor"
+        ignore.minimum.for.test.use.only="true" initialPollDelay="-1" retryInterval="300s"
+        retryLimit="-1" taskStoreRef="EJBPersistentTimerStore">
+    </persistentExecutor>
+
+    <databaseStore id="ejbTimerDataStore" keyGenerationStrategy="SEQUENCE" />
+    <dataSource id="DefaultDataSource" jdbcDriverRef="dbDriver">
+        <properties.postgresql
+            serverName="${db.server.name}"
+            portNumber="${db.port.number}"
+            databaseName="${db.name}"
+            user="${db.user}"
+            password="${db.password}"
+            ssl="${db.ssl}" />
+    </dataSource>
+
+    <ejbContainer>
+        <timerService persistentExecutorRef="EJBPersistentTimerExecutor" />
+        <timerService missedPersistentTimerAction="ONCE" />
+    </ejbContainer>
+
+    <messagingEngine id="defaultME">
+        <queue forceReliability="ReliablePersistent" id="CargoHandledQueue" maxQueueDepth="5000" />
+        <queue forceReliability="ReliablePersistent" id="MisdirectedCargoQueue" maxQueueDepth="5000" />
+        <queue forceReliability="ReliablePersistent" id="DeliveredCargoQueue" maxQueueDepth="5000" />
+        <queue forceReliability="ReliablePersistent" id="HandlingEventRegistrationAttemptQueue"
+            maxQueueDepth="5000" />
+        <queue forceReliability="ReliablePersistent" id="RejectedRegistrationAttemptsQueue"
+            maxQueueDepth="5000" />
     </messagingEngine>
 
-    <jmsQueue id="jms/MisdirectedCargoQueue" jndiName="jms/MisdirectedCargoQueue">
-        <properties.wasJms queueName="MisdirectedCargoQueue"/>
+    <jmsQueueConnectionFactory connectionManagerRef="CargoCM"
+        jndiName="java:app/jms/QueueConnectionFactory">
+    </jmsQueueConnectionFactory>
+
+    <jmsQueue id="CargoHandledQueue" jndiName="jms/CargoHandledQueue">
+        <properties.wasJms queueName="CargoHandledQueue" />
     </jmsQueue>
-    <jmsQueue id="jms/CargoHandledQueue" jndiName="jms/CargoHandledQueue">
-        <properties.wasJms queueName="CargoHandledQueue"/>
-    </jmsQueue>
-    <jmsQueue id="jms/RejectedRegistrationAttemptsQueue" jndiName="jms/RejectedRegistrationAttemptsQueue">
-        <properties.wasJms queueName="RejectedRegistrationAttemptsQueue"/>
-    </jmsQueue>
-    <jmsQueue id="jms/HandlingEventRegistrationAttemptQueue" jndiName="jms/HandlingEventRegistrationAttemptQueue">
-        <properties.wasJms queueName="HandlingEventRegistrationAttemptQueue"/>
-    </jmsQueue>
-    <jmsQueue id="jms/DeliveredCargoQueue" jndiName="jms/DeliveredCargoQueue">
-        <properties.wasJms queueName="DeliveredCargoQueue"/>
+
+    <jmsActivationSpec id="cargo-tracker/CargoHandledConsumer">
+        <properties.wasJms destinationLookup="java:app/jms/CargoHandledQueue"
+            destinationRef="CargoHandledQueue" destinationType="javax.jms.Queue"
+            maxConcurrency="200" />
+    </jmsActivationSpec>
+
+    <jmsQueue id="MisdirectedCargoQueue" jndiName="jms/MisdirectedCargoQueue">
+        <properties.wasJms queueName="MisdirectedCargoQueue" />
     </jmsQueue>
 
     <jmsActivationSpec id="cargo-tracker/MisdirectedCargoConsumer">
-        <properties.wasJms
-                destinationRef="jms/MisdirectedCargoQueue"
-                destinationType="javax.jms.Queue"
-        />
+        <properties.wasJms destinationRef="MisdirectedCargoQueue" destinationType="javax.jms.Queue"
+            maxConcurrency="200" />
     </jmsActivationSpec>
-    <jmsActivationSpec id="cargo-tracker/CargoHandledConsumer">
-        <properties.wasJms
-                destinationRef="jms/CargoHandledQueue"
-                destinationType="javax.jms.Queue"
-        />
-    </jmsActivationSpec>
-    <jmsActivationSpec id="cargo-tracker/RejectedRegistrationAttemptsConsumer">
-        <properties.wasJms
-                destinationRef="jms/RejectedRegistrationAttemptsQueue"
-                destinationType="javax.jms.Queue"
-        />
-    </jmsActivationSpec>
-    <jmsActivationSpec id="cargo-tracker/HandlingEventRegistrationAttemptConsumer">
-        <properties.wasJms
-                destinationRef="jms/HandlingEventRegistrationAttemptQueue"
-                destinationType="javax.jms.Queue"
-        />
-    </jmsActivationSpec>
+
+    <jmsQueue id="DeliveredCargoQueue" jndiName="jms/DeliveredCargoQueue">
+        <properties.wasJms queueName="DeliveredCargoQueue" />
+    </jmsQueue>
+
     <jmsActivationSpec id="cargo-tracker/DeliveredCargoConsumer">
-        <properties.wasJms
-                destinationRef="jms/DeliveredCargoQueue"
-                destinationType="javax.jms.Queue"
-        />
+        <properties.wasJms destinationRef="DeliveredCargoQueue" destinationType="javax.jms.Queue"
+            maxConcurrency="200" />
     </jmsActivationSpec>
+
+    <jmsQueue id="HandlingEventRegistrationAttemptQueue"
+        jndiName="jms/HandlingEventRegistrationAttemptQueue">
+        <properties.wasJms queueName="HandlingEventRegistrationAttemptQueue" />
+    </jmsQueue>
+
+    <jmsActivationSpec id="cargo-tracker/HandlingEventRegistrationAttemptConsumer">
+        <properties.wasJms destinationRef="HandlingEventRegistrationAttemptQueue"
+            destinationType="javax.jms.Queue" maxConcurrency="200" />
+    </jmsActivationSpec>
+
+    <jmsQueue id="RejectedRegistrationAttemptsQueue"
+        jndiName="jms/RejectedRegistrationAttemptsQueue">
+        <properties.wasJms queueName="RejectedRegistrationAttemptsQueue" />
+    </jmsQueue>
+
+    <jmsActivationSpec id="cargo-tracker/RejectedRegistrationAttemptsConsumer">
+        <properties.wasJms destinationRef="RejectedRegistrationAttemptsQueue"
+            destinationType="javax.jms.Queue" maxConcurrency="200" />
+    </jmsActivationSpec>
+
+    <!-- Define web application with its context root and location -->
+    <webApplication id="cargo-tracker" contextRoot="cargo-tracker"
+        location="${server.config.dir}/apps/cargo-tracker.war">
+        <classloader commonLibraryRef="driver-library" />
+        <web-bnd moduleName="cargo-tracker">
+            <env-entry name="java:app/configuration/GraphTraversalUrl"
+                value="http://cargo-tracker-cluster:9080/cargo-tracker/rest/graph-traversal/shortest-path" />
+        </web-bnd>
+        <application-bnd>
+            <security-role name="batchAdmin">
+                <special-subject type="EVERYONE" />
+            </security-role>
+        </application-bnd>
+    </webApplication>
+
+    <keyStore id="defaultKeyStore" password="password" />
+    <applicationMonitor updateTrigger="mbean" />
+    <applicationManager autoExpand="true" />
+    <httpSession cookieName="COOKIE" />
+    <channelfw chainQuiesceTimeout="60s" />
 </server>

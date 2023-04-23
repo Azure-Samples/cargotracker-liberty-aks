@@ -87,7 +87,7 @@ Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following
 ```bash
 export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
 export RESOURCE_GROUP_NAME="abc1110rg" # customize this
-export DB_RESOURCE_NAME="libertydb$(date +%s)" # PostgreSQL server name
+export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
 export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
 export DB_PORT_NUMBER=5432
@@ -273,26 +273,44 @@ export APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component
 
 ### Build and deploy Cargo Tracker
 
+First, prepare the environment variables used in the build time. If you haven't set the deployment variables, run the following command:
+
+```bash
+source ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+```
+
+Next, obtain the registry information.
+
 ```bash
 export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query '[0].name' -o tsv)
 export LOGIN_SERVER=$(az acr show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
-export USER_NAME=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
-export PASSWORD=$(az acr credential show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
 ```
 
+Now, it's ready to build Cargo Tracker.
+
 ```bash
-  mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
+mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
 ```
+
+The war file locates in `${DIR}/cargotracker/target/cargo-tracker.war`. 
+
+The following steps are to build a container image which will be deployed to AKS. 
+
+The image tag is constructed with `${project.artifactId}:${project.version}`. Run the following command to obtain their values.
 
 ```bash
 IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
 IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
 ```
 
+Run `ac acr built` command to build the container image.
+
 ```bash
 cd ${DIR}/cargotracker/target
 az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 ```
+
+The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
 AKS_NAME=$(az resource list \
@@ -303,6 +321,10 @@ AKS_NAME=$(az resource list \
 az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
 ```
 
+Run the following command to create secrets for data source connection and Application Insights connection.
+
+Then deploy the container image to AKS cluster.
+
 ```bash
 kubectl apply -f ${DIR}/cargotracker/target/db-secret.yaml
 kubectl apply -f ${DIR}/cargotracker/target/app-insight.yaml
@@ -311,7 +333,9 @@ kubectl apply -f ${DIR}/cargotracker/target/openlibertyapplication.yaml
 kubectl get pod -w
 ```
 
-Get URL to access Cargo Tracker.
+Press `Control + C` to exit the watching mode.
+
+Run the following command to get URL to access Cargo Tracker.
 
 ```bash
 EXTERNAL_IP=$(kubectl get service -o json | jq -r '.items[] | select(.metadata.name=="cargo-tracker-cluster") | .status.loadBalancer.ingress[0].ip')

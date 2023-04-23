@@ -343,9 +343,6 @@
                 <liberty.bootstrap.db.user>${db.user}</liberty.bootstrap.db.user>
                 <liberty.bootstrap.db.password>${db.password}</liberty.bootstrap.db.password>
                 <param.login.server>${env.LOGIN_SERVER}</param.login.server>
-                <param.registry.name>${env.REGISTRY_NAME}</param.registry.name>
-                <param.password>${env.PASSWORD}</param.password>
-                <param.user.name>${env.USER_NAME}</param.user.name>
                 <param.db.server.name>${env.DB_SERVER_NAME}</param.db.server.name>
                 <param.db.port.number>${env.DB_PORT_NUMBER}</param.db.port.number>
                 <param.db.name>${env.DB_NAME}</param.db.name>

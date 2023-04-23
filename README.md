@@ -146,6 +146,9 @@ Several parameters are required to invoke the Bicep templates. Parameters and th
 | `maxCount` | `5` | Maximum count of AKS nodes. |
 | `createACR` | `true` | This value causes provisioning of Azure Container Registry. |
 | `deployApplication` | `false` | The application will be deployed on later section. |
+| `enableAppGWIngress` | `true` | The value causes to provision Azure Application Gateway Ingress Controller. |
+| `appGatewayCertificateOption` | `generateCert` | The option causes generation self-signed certificate for Application Gateway. |
+| `enableCookieBasedAffinity` | `true` | The value causes to enable cookie based affinity for Application Gateway backend setting. |
 
 Create parameter file.
 
@@ -178,6 +181,15 @@ cat <<EOF >parameters.json
     },
     "deployApplication": {
         "value": false
+    },
+    "enableAppGWIngress": {
+        "value": true
+    },
+    "appGatewayCertificateOption": {
+        "value": "generateCert"
+    },
+    "enableCookieBasedAffinity": {
+        "value": true
     }
   }
 }
@@ -193,7 +205,7 @@ Run the following command to validate the parameter file.
 ```bash
 az deployment group validate \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --name wls-on-aks \
+  --name liberty-on-aks \
   --parameters @parameters.json \
   --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
 ```
@@ -205,7 +217,7 @@ Next, invoke the template.
 ```bash
 az deployment group create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --name wls-on-aks \
+  --name liberty-on-aks \
   --parameters @parameters.json \
   --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
 ```
@@ -346,16 +358,6 @@ kubectl get pod -w
 ```
 
 Press `Control + C` to exit the watching mode.
-
-Run the following command to get URL to access Cargo Tracker.
-
-```bash
-EXTERNAL_IP=$(kubectl get service -o json | jq -r '.items[] | select(.metadata.name=="cargo-tracker-cluster") | .status.loadBalancer.ingress[0].ip')
-
-APP_URL="http://${EXTERNAL_IP}:9080/cargo-tracker/"
-
-echo ${APP_URL}
-```
 
 Now, Cargo Tracker is running on Open Liberty, and connecting to Application Insights. You are able to monitor the application.
 

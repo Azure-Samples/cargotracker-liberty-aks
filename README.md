@@ -2,7 +2,7 @@
 
 This quickstart shows you how to deploy an existing Liberty application to AKS using Liberty on AKS solution templates. When you're finished, you can continue to manage the application via the Azure CLI or Azure Portal.
 
-Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This quickstart uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Load Balancer service via Public IP address.
+Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This quickstart uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Application Gateway service.
 
 * [Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)]()
   * [Introduction](#introduction)
@@ -13,11 +13,12 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
     * [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
     * [Sign in to Azure](#sign-in-to-azure)
     * [Create a resource group](#create-a-resource-group)
-    * [Create an Azure Database for PostgreSQL instance](#create-an-azure-database-for-postgresql-instance)
     * [Prepare deployment parameters](#prepare-deployment-parameters)
-    * [Invoke Liberty on AKS Bicep template to deploy the application](#invoke-liberty-on-aks-bicep-template-to-deploy-the-application)
-    * [Monitor WebLogic application](#monitor-weblogic-application)
-      * [Create Application Insights](#create-application-insights)
+    * [Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator](#invoke-liberty-on-aks-bicep-template-to-deploy-the-open-liberty-operator)
+    * [Create an Azure Database for PostgreSQL instance](#create-an-azure-database-for-postgresql-instance)
+    * [Create Application Insights](#create-application-insights)
+    * [Build and deploy Cargo Tracker](#build-and-deploy-cargo-tracker)
+    * [Monitor Liberty application](#monitor-liberty-application)
       * [Use Cargo Tracker and make a few HTTP calls](#use-cargo-tracker-and-make-a-few-http-calls)
       * [Start monitoring Cargo Tracker in Application Insights](#start-monitoring-cargo-tracker-in-application-insights)
       * [Start monitoring Liberty logs in Azure Log Analytics](#start-monitoring-liberty-logs-in-azure-log-analytics)
@@ -39,7 +40,7 @@ In this quickstart, you will:
     * Build your application, Open Liberty into an image
     * Push your application image to the container registry
     * Deploy your application to AKS
-    * Expose your application with the Azure Load Balancer service
+    * Expose your application with the Azure Application Gateway service
   * Verify your application
   * Monitor application
   * Automate deployments using GitHub Actions
@@ -277,6 +278,22 @@ az monitor log-analytics workspace create \
 WORKSPACE_ID=$(az monitor log-analytics workspace list -g abc1110rg --query '[0].id' -o tsv)
 ```
 
+
+This quickstart uses Caontainer Insights to monitor AKS. Enable it with the following commands. 
+
+```bash
+AKS_NAME=$(az resource list \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --query "[?type=='Microsoft.ContainerService/managedClusters'].name|[0]" \
+  -o tsv)
+
+az aks enable-addons \
+  --addons monitoring \
+  --name ${AKS_NAME} \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --workspace-resource-id ${WORKSPACE_ID}
+```
+
 Next, provision Application Insights.
 
 ```bash
@@ -385,6 +402,14 @@ echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 
 You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with above exercise.
 
+The `/cargo` REST API causes sever-sent events service for tracking all cargo in real time.
+
+You can run the following curl command:
+
+```bash
+curl -v "${CARGO_TRACKER_URL}rest/cargo"
+```
+
 The `/graph-traversal/shortest-path` REST API allows you to retrieve shortest path from origin to destination.
 
 The API requires the following parameters:
@@ -449,9 +474,126 @@ curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER
 
 #### Start monitoring Cargo Tracker in Application Insights
 
+Open the Application Insights and start monitoring Cargo Tracker. You can find the Application Insights in the same Resource Group where you created deployments using Bicep templates.
+
+Navigate to the `Application Map` blade:
+
+![Cargo Tracker Application Map in Application Insights](media/app-insights-app-map.png)
+
+Navigate to the `Performance` blade:
+
+![Cargo Tracker Performance in Application Insights](media/app-insights-performance.png)
+
+Select operation **GET /cargo-tracker/cargo**, select **Drill into...**, **number-N Samples** you will find the operations are listed in the right panel.
+
+Select the first operation with response code 200, the **End-to-end transaction details** page shows.
+
+![Cargo Tracker transaction details in Application Insights](media/app-insights-cargo-end-to-end-transaction.png)
+
+Select operation **POST /cargo-tracker/rest/handling/reports**, select **Drill into...**, **number-N Samples** you will find the operations are listed in the right panel.
+
+Select the first operation with response code 204. Select the **View all** button in **Traces & events** panel, the traces and events are listed.
+
+![Cargo Tracker traces and events in Application Insights](media/app-insights-cargo-reports-traces.png)
+
+Navigate to the `Failures/Exceptions` blade - you can see a collection of exceptions:
+
+![Cargo Tracker Failures in Application Insights](media/app-insights-failures.png)
+
+Click on an exception to see the end-to-end transaction and stack trace in context:
+
+![Cargo Tracker stacktrace in Application Insights](media/app-insights-failure-details.png)
+
+Navigate to the Live Metrics blade - you can see live metrics on screen with low latencies < 1 second:
+
+![Cargo Tracker Live Metrics in Application Insights](media/app-insights-live-metrics.png)
+
 #### Start monitoring Liberty logs in Azure Log Analytics
 
+Open the Log Analytics that created in previous steps.
+
+In the Log Analytics page, selects Logs blade and run any of the sample queries supplied below for Open Liberty server logs.
+
+Make sure the quary scope is your aks instance.
+
+First, get the pod name of each server.
+
+```bash
+kubectl get pod
+```
+
+You will get output like the following content. The first three pods are running Open Liberty servers. The last one is running Open Liberty Operator.
+
+```bash
+NAME                                      READY   STATUS    RESTARTS   AGE
+cargo-tracker-cluster-7c6df94fc7-5rpjd    1/1     Running   0          2m50s
+cargo-tracker-cluster-7c6df94fc7-hrvln    1/1     Running   0          2m50s
+cargo-tracker-cluster-7c6df94fc7-pr6zj    1/1     Running   0          2m50s
+olo-controller-manager-77cc59655b-2r5qg   1/1     Running   0          2d5h
+```
+
+Type and run the following Kusto query to see operator logs, replace the `ContainerHostname` with the operator pod name displayed above.
+
+```sql
+ContainerInventory
+| where ContainerHostname == 'olo-controller-manager-77cc59655b-2r5qg' 
+| project ContainerID
+| take 1
+| join (ContainerLog
+    | project  ContainerID, LogEntry, TimeGenerated)
+    on ContainerID
+| sort by TimeGenerated
+| limit 500
+| project LogEntry
+```
+
+Type and run the following Kusto query to see Open Liberty server logs, replace the `ContainerHostname` with one of Open Liberty server name displayed above.
+
+```bash
+ContainerInventory
+| where ContainerHostname == 'cargo-tracker-cluster-7c6df94fc7-5rpjd' 
+| project ContainerID
+| take 1
+| join (ContainerLog
+    | project  ContainerID, LogEntry, TimeGenerated)
+    on ContainerID
+| sort by TimeGenerated
+| limit 500
+| project LogEntry
+```
+
+You can change the server pod name to query expected server logs.
+
 #### Start monitoring Cargo Tracker logs in Azure Log Analytics
+
+Open the Log Analytics that created in previous steps.
+
+In the Log Analytics page, selects Logs blade and run any of the sample queries supplied below for Application logs.
+
+Type and run the following Kusto query to obtain failed dependencies:
+
+```sql
+AppDependencies 
+| where Success == false
+| project Target, DependencyType, Name, Data, OperationId, AppRoleInstance
+```
+
+Type and run the following Kusto query to obtain `java.time.format.DateTimeParseException` exceptions:
+
+```sql
+AppExceptions 
+| where ExceptionType == "java.time.format.DateTimeParseException"
+| project TimeGenerated, ProblemId, Method, OuterMessage, AppRoleInstance
+| sort by TimeGenerated
+| limit 100
+```
+
+Type and run the following Kusto query to obtain specified failed request:
+
+```sql
+AppRequests 
+| where OperationName == "POST /cargo-tracker/rest/handling/reports" and ResultCode == "500"
+```
 
 ## Unit-2 - Automate deployments using GitHub Actions
 
@@ -577,6 +719,6 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 1. If desired, go back to **Mobile Event Logger** and continue performing the next activity.
 
-## LAppendix 2 - Learn more about Cargo Tracker
+## Appendix 2 - Learn more about Cargo Tracker
 
-See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](cargo-tracker.md)
+See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](https://github.com/eclipse-ee4j/cargotracker/)

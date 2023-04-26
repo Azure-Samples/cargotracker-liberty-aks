@@ -15,7 +15,7 @@ on:
 env:
   refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
   refJavaee: b728442f1921282f5f3902fe5bdf7f4d2c7872ca
-  appInsightsName: appins${{ github.run_id }}${{ github.run_number }}
+  appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.40.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
   dbName: wlsdb${{ github.run_id }}${{ github.run_number }}
@@ -417,10 +417,6 @@ jobs:
           fi
          
           # get request
-          # the command finish with curl 18, it's ok.
-          status=$(curl -v 20 "${appURL}rest/cargo")
-
-          # get request
           curl -X GET -H "Accept: application/json" "${appURL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
           
           # post request
@@ -447,7 +443,7 @@ jobs:
             "voyageNumber": "0200T"
           }
           EOF
-          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${cargoUrl}rest/handling/reports
+          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${appURL}rest/handling/reports
       
       # Print app URL to the pipeline summary page.
       - name: Print app URL

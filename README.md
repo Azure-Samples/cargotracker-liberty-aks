@@ -261,12 +261,13 @@ First, install or upgrade `application-insights` extension.
 az extension add --upgrade -n application-insights
 ```
 
-Create a 
+Create a Log Analytics Workspace.
 
 ```bash
+WORKSPACE_NAME="loga$(date +%s)"
 az monitor log-analytics workspace create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --workspace-name loganalyticslibertyakscargotracker \
+  --workspace-name ${WORKSPACE_NAME} \
   --location eastus
 
 WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
@@ -288,9 +289,10 @@ az aks enable-addons \
 Next, provision Application Insights.
 
 ```bash
+APPINSIGHTS_NAME="appinsights$(date +%s)"
 az monitor app-insights component create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --app appinsightlibertyakscargotracker \
+  --app ${APPINSIGHTS_NAME} \
   --location eastus \
   --workspace ${WORKSPACE_ID}
 ```
@@ -374,7 +376,8 @@ This section uses Application Insights and Azure Log Analytics to monitor Open L
 
 You can open Cargo Tracker in your web browser and follow [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality) to make some calls.
 
-Use the following commands to obtain URL of Cargo Tracker:
+Use the following commands to obtain URL of Cargo Tracker. When accessing the application, if you get "502 Bad Gateway" response, just wait a few minutes.
+
 
 ```bash
 GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
@@ -389,14 +392,6 @@ echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 ```
 
 You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with the above exercise.
-
-The `/cargo` REST API causes sever-sent events service for tracking all cargo in real time.
-
-You can run the following curl command:
-
-```bash
-curl -v "${CARGO_TRACKER_URL}rest/cargo"
-```
 
 The `/graph-traversal/shortest-path` REST API allows you to retrieve shortest path from origin to destination.
 
@@ -682,7 +677,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + Query Application URL. Obtain cargo tracker URL.
 
 * Make REST API calls
-  + Two HTTP GET requests.
+  + A HTTP GET request.
   + A HTTP POST request.
   + An datetime format failure request.
 

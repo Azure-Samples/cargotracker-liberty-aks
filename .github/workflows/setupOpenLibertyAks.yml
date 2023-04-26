@@ -417,7 +417,8 @@ jobs:
           fi
          
           # get request
-          curl -v "${appURL}rest/cargo"
+          # the command finish with curl 18, it's ok.
+          status=$(curl -v 20 "${appURL}rest/cargo")
 
           # get request
           curl -X GET -H "Accept: application/json" "${appURL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"

@@ -83,7 +83,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
 ```
 
-Open ${DIR}/cargotracker/.scripts/setup-env-variables.sh and enter the following information.
+Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the following information. You can keep them with default values.
 
 ```bash
 export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
@@ -269,7 +269,7 @@ az monitor log-analytics workspace create \
   --workspace-name loganalyticslibertyakscargotracker \
   --location eastus
 
-WORKSPACE_ID=$(az monitor log-analytics workspace list -g abc1110rg --query '[0].id' -o tsv)
+WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
 ```
 
 
@@ -680,7 +680,6 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + Apply deployment files. Apply data source configuration in `target/db-secret.yaml`, App Insight configuration in `target/app-insight.yaml` and cargo tracker metadata in `target/openlibertyapplication.yaml`. This will cause cargo tracker deployed to the AKS cluster.
   + Verify pods are ready. Make sure Cargo Tracker is live.
   + Query Application URL. Obtain cargo tracker URL.
-  + Verify that the app is updated. Make sure cargo tracker is running by validating its version string.
 
 * Make REST API calls
   + Two HTTP GET requests.

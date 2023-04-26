@@ -395,38 +395,32 @@ jobs:
           appUrl="http://${gatewayUrl}/cargo-tracker/"
 
           echo "appURL=${appUrl}" >> $GITHUB_ENV
-      # Validate the app using playwright
-      - name: Verify that the app is update
-        run: |
-          # install dependencies
-          sudo apt-get update
-          sudo apt-get install libegl1\
-                libhyphen0\
-                libopus0\
-                libwoff1\
-                libharfbuzz-icu0\
-                libgstreamer-plugins-base1.0-0\
-                libgstreamer-gl1.0-0\
-                libgstreamer-plugins-bad1.0-0\
-                libopenjp2-7\
-                libwebpdemux2\
-                libenchant1c2a\
-                libgles2\
-                gstreamer1.0-libav -y
-          appURL=${{ env.appURL }}
-          cd cargotracker/src/test/aks/playwright-ui-test
-          mvn clean install
-          mvn exec:java -e -Dexec.mainClass=com.microsoft.azure.javaee.FetchBuildVersion -Dexec.args="'${appURL}' '${{ env.deployVersion }}'"
       # Make REST API calls to cause metrics, which will be shown in the Application Insights.
       - name: Make REST API calls
         run: |
-          cargoUrl=${{env.appUrl}}
+          # wait for application ready
+          attempt=0
+          maxAttempt=50
+          statusCode=404
+
+          while [[ $attempt -le ${maxAttempt} ]] && [[ "${statusCode}" != "200" ]]; do
+            echo "attempt: ${attempt}"
+            statusCode=$(curl -s -o /dev/null -w "%{http_code}" ${appURL})
+            echo "http code: ${statusCode}"
+            attempt=$((attempt + 1))
+            sleep 20
+          done
+
+          if [[ ${attempt} -gt ${maxAttempt} ]]; then
+              echo "Failed to access ${appURL}. "
+              exit 1
+          fi
+         
+          # get request
+          curl -v "${appURL}rest/cargo"
 
           # get request
-          curl -v "${cargoUrl}rest/cargo"
-
-          # get request
-          curl -X GET -H "Accept: application/json" "${cargoUrl}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
+          curl -X GET -H "Accept: application/json" "${appURL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
           
           # post request
           currentDateTime=$(date +'%m/%d/%Y %I:%M %p')
@@ -439,7 +433,7 @@ jobs:
             "voyageNumber": "0200T"
           }
           EOF
-          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${cargoUrl}rest/handling/reports
+          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${appURL}rest/handling/reports
           
           # Datetime format Failure
           currentDateTime=$(date +'%m/%d/%Y %H:%M:%S')

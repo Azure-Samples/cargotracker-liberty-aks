@@ -2,7 +2,7 @@
 
 This quickstart shows you how to deploy an existing Liberty application to AKS using Liberty on AKS solution templates. When you're finished, you can continue to manage the application via the Azure CLI or Azure Portal.
 
-Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This quickstart uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Application Gateway service.
+Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This [quickstart](https://learn.microsoft.com/azure/aks/howto-deploy-java-liberty-app) uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Application Gateway service.
 
 * [Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)]()
   * [Introduction](#introduction)
@@ -279,13 +279,10 @@ WORKSPACE_ID=$(az monitor log-analytics workspace list -g abc1110rg --query '[0]
 ```
 
 
-This quickstart uses Caontainer Insights to monitor AKS. Enable it with the following commands. 
+This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-AKS_NAME=$(az resource list \
-  --resource-group ${RESOURCE_GROUP_NAME} \
-  --query "[?type=='Microsoft.ContainerService/managedClusters'].name|[0]" \
-  -o tsv)
+AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
@@ -354,10 +351,7 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-AKS_NAME=$(az resource list \
-  --resource-group ${RESOURCE_GROUP_NAME} \
-  --query "[?type=='Microsoft.ContainerService/managedClusters'].name|[0]" \
-  -o tsv)
+AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
 
 az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
 ```
@@ -668,7 +662,13 @@ This job is to provision Azure resources, run Open Liberty Operator on AKS using
     + An Azure Container Registry. It'll store app image in the later steps.
     + An Azure Kubernetes Service with Open Liberty Operator running in `default` namespace.
 
-#### Job: deploy-cargo-tracke
+#### Job: deploy-azure-monitor
+  + azure-login. Login Azure.
+  + Deploy Log Analytics Workspace. Provision Log Analytics Workspace to store logs for Container Insights and metrics for Application Insights.
+  + Enable Container Insights. Enable Azure Monitor in the existing AKS cluster and enable Container Insights.
+  + Provision Application Insights. Provision Application Insights to monitor the application. Cargo Tracker will connect to the App Insight in later steps. Application Insights shares the same workspace with Container Insights.
+
+#### Job: deploy-cargo-tracker
 
 This job is to build app, push it to ACR and apply it to Open Liberty server running on AKS.
 
@@ -683,11 +683,17 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + Query version string for deployment verification. Obtain the app version string for later verification.
   + Build image and upload to ACR. Build cargo tracker into a docker image with docker file locating in [Dockerfile](Dockerfile), and push the image to ACR.
   + Connect to AKS cluster. Connect to AKS cluster to deploy cargo tracker.
-  + Apply deployment files. Apply data source configuration in `target/db-secret.yaml` and cargo tracker metadata in `target/openlibertyapplication.yaml`. This will cause cargo tracker deployed to the AKS cluster.
+  + Apply deployment files. Apply data source configuration in `target/db-secret.yaml`, App Insight configuration in `target/app-insight.yaml` and cargo tracker metadata in `target/openlibertyapplication.yaml`. This will cause cargo tracker deployed to the AKS cluster.
   + Verify pods are ready. Make sure cargo tracker is live.
   + Query Application URL. Obtain cargo tracker URL.
   + Verify that the app is update. Make sure cargo tracker is running by validating its version string.
-  + Print app URL. Print the cargo tracker URL to pipeline summary page. Now you'are able to access cargo tracker with the URL from your browser.
+
+* Make REST API calls
+  + Two HTTP GET requests.
+  + A HTTP POST request.
+  + An datetime format failure request.
+
+* Print app URL. Print the cargo tracker URL to pipeline summary page. Now you'are able to access cargo tracker with the URL from your browser.
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality
 

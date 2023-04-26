@@ -32,7 +32,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
 In this quickstart, you will:
 
 * Deploying Cargo Tracker:
-  * Create ProgresSQL Database
+  * Create PostgreSQL Database
   * Create the Cargo Tracker - build with Maven
   * Provisioning Azure Infra Services with BICEP templates
     * Create an Azure Container Registry
@@ -116,7 +116,7 @@ cd ${DIR}
 
 ### Sign in to Azure
 
-If you haven't already, sign in to your Azure subscription by using the `az login` command and follow the on-screen directions.
+If you haven't already, sign into your Azure subscription by using the `az login` command and follow the on-screen directions.
 
 ```bash
 az login
@@ -146,10 +146,10 @@ Several parameters are required to invoke the Bicep templates. Parameters and th
 | `minCount` | `1` | Minimum count of AKS nodes. |
 | `maxCount` | `5` | Maximum count of AKS nodes. |
 | `createACR` | `true` | This value causes provisioning of Azure Container Registry. |
-| `deployApplication` | `false` | The application will be deployed on later section. |
+| `deployApplication` | `false` | The application will be deployed on the later section. |
 | `enableAppGWIngress` | `true` | The value causes to provision Azure Application Gateway Ingress Controller. |
 | `appGatewayCertificateOption` | `generateCert` | The option causes generation self-signed certificate for Application Gateway. |
-| `enableCookieBasedAffinity` | `true` | The value causes to enable cookie based affinity for Application Gateway backend setting. |
+| `enableCookieBasedAffinity` | `true` | The value causes to enable cookie-based affinity for Application Gateway backend setting. |
 
 Create parameter file.
 
@@ -211,7 +211,7 @@ az deployment group validate \
   --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
 ```
 
-The command should complete without error. If there is, you must resolve it before moving on.
+The command should be completed without error. If there is, you must resolve it before moving on.
 
 Next, invoke the template.
 
@@ -249,12 +249,6 @@ az postgres server create \
   -n "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
-```
-
-Obtain the JDBC connection string, which will be used as a deployment parameter.
-
-```bash
-DB_CONNECTION_STRING="jdbc:postgresql://${DB_RESOURCE_NAME}.postgres.database.azure.com:5432/postgres"
 ```
 
 ### Create Application Insights
@@ -394,7 +388,7 @@ CARGO_TRACKER_URL="http://${GATEWAY_URL}/cargo-tracker/"
 echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 ```
 
-You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with above exercise.
+You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with the above exercise.
 
 The `/cargo` REST API causes sever-sent events service for tracking all cargo in real time.
 
@@ -420,7 +414,7 @@ You can run the following curl command:
 curl -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
 ```
 
-The `/handling/reports` REST API allows you to sends an asynchronous message with the information to the handling event registration system for proper registration.
+The `/handling/reports` REST API allows you to send an asynchronous message with the information to the handling event registration system for proper registration.
 
 The API requires the following parameters:
 
@@ -506,7 +500,7 @@ Navigate to the Live Metrics blade - you can see live metrics on screen with low
 
 Open the Log Analytics that created in previous steps.
 
-In the Log Analytics page, selects Logs blade and run any of the sample queries supplied below for Open Liberty server logs.
+In the Log Analytics page, select `Logs` blade and run any of the sample queries supplied below for Open Liberty server logs.
 
 Make sure the quary scope is your aks instance.
 
@@ -562,7 +556,7 @@ You can change the server pod name to query expected server logs.
 
 Open the Log Analytics that created in previous steps.
 
-In the Log Analytics page, selects Logs blade and run any of the sample queries supplied below for Application logs.
+In the Log Analytics page, select `Logs` blade and run any of the sample queries supplied below for Application logs.
 
 Type and run the following Kusto query to obtain failed dependencies:
 
@@ -635,7 +629,7 @@ This job is to build Liberty on AKS template into a ZIP file containing the ARM 
 
 #### Job: deploy-db
 
-This job is to deploy PostgreSQL server and configure firewall setting.
+This job is to deploy PostgreSQL server and configure firewall settings.
 
 * Set Up Azure Database for PostgreSQL
   + azure-login. Login Azure.
@@ -657,7 +651,7 @@ This job is to provision Azure resources, run Open Liberty Operator on AKS using
   + Create Resource Group. Create a resource group for Liberty on AKS.
   + Checkout cargotracker. Checkout the parameter template.
   + Prepare parameter file. Set values to the parameters.
-  + Validate Deploy of Open Liberty Server Cluster Domain offer. Validate the parameters file in the context of the bicep template to be invoked. This will catch some errors before taking the time to start the full deployment. `--template-file` is the mainTemplate.json from solution template ZIP file. `--parameters` is the parameter file created in last step.
+  + Validate Deploy of Open Liberty Server Cluster Domain offer. Validate the parameters file in the context of the bicep template to be invoked. This will catch some errors before taking the time to start the full deployment. `--template-file` is the mainTemplate.json from solution template ZIP file. `--parameters` is the parameter file created in the last step.
   + Deploy Open Liberty Server Cluster Domain offer. Invoke the mainTemplate.json to deploy resources and configurations. After the deployment completes, you'll get the following result:
     + An Azure Container Registry. It'll store app image in the later steps.
     + An Azure Kubernetes Service with Open Liberty Operator running in `default` namespace.
@@ -679,14 +673,14 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 * Deploy Cargo Tracker
   + Checkout cargotracker. Checkout source code of cargo tracker from this repository.
-  + Build the app. Set required environment variables and build cargo tracker with Maven.
+  + Build the applications. Set required environment variables and build cargo tracker with Maven.
   + Query version string for deployment verification. Obtain the app version string for later verification.
-  + Build image and upload to ACR. Build cargo tracker into a docker image with docker file locating in [Dockerfile](Dockerfile), and push the image to ACR.
+  + Build an image and upload to ACR. Build cargo tracker into a docker image with docker file locating in [Dockerfile](Dockerfile), and push the image to ACR.
   + Connect to AKS cluster. Connect to AKS cluster to deploy cargo tracker.
   + Apply deployment files. Apply data source configuration in `target/db-secret.yaml`, App Insight configuration in `target/app-insight.yaml` and cargo tracker metadata in `target/openlibertyapplication.yaml`. This will cause cargo tracker deployed to the AKS cluster.
-  + Verify pods are ready. Make sure cargo tracker is live.
+  + Verify pods are ready. Make sure Cargo Tracker is live.
   + Query Application URL. Obtain cargo tracker URL.
-  + Verify that the app is update. Make sure cargo tracker is running by validating its version string.
+  + Verify that the app is updated. Make sure cargo tracker is running by validating its version string.
 
 * Make REST API calls
   + Two HTTP GET requests.
@@ -703,7 +697,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
    1. Observe what the **next expected activity** is.
 
-1. On the main page, select **Administration Interface**, then, in the left navigation column select **Live** in a new window.  This opens up a map view.
+1. On the main page, select **Administration Interface**, then, in the left navigation column select **Live** in a new window.  This opens a map view.
 
    1. Mouse over the pins and find the one for **ABC123**.  Take note of the information in the hover window.
 
@@ -721,7 +715,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 1. Review the information and verify it matches the **next expected activity**.  If not, go back and fix it.  If so, select **Submit**.
 
-1. Back on the **Public Tracking Interface** select **Tracking** then enter **ABC123** and select **Track**.  Observe that a different. **next expected activity** is listed.
+1. Back on the **Public Tracking Interface** select **Tracking** then enter **ABC123** and select **Track**.  Observe that different. **next expected activity** is listed.
 
 1. If desired, go back to **Mobile Event Logger** and continue performing the next activity.
 

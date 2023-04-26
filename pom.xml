@@ -276,7 +276,7 @@
                                 <artifactItem>
                                     <groupId>org.postgresql</groupId>
                                     <artifactId>postgresql</artifactId>
-                                    <version>42.2.4</version>
+                                    <version>42.3.8</version>
                                     <type>jar</type>
                                     <outputDirectory>${project.build.directory}/liberty/wlp/usr/shared/resources</outputDirectory>
                                     <destFileName>postgresql.jar</destFileName>

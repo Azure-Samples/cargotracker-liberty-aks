@@ -7,10 +7,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.NamedQuery;
-import javax.persistence.SequenceGenerator;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.Validate;
+import javax.persistence.SequenceGenerator;
 
 /**
  * A location in our model is stops on a journey, such as cargo origin or destination, or carrier
@@ -29,7 +29,7 @@ public class Location implements Serializable {
 
   // Special Location object that marks an unknown location.
   public static final Location UNKNOWN = new Location(new UnLocode("XXXXX"), "Unknown location");
-  
+
   @Id 
   @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
   @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")

@@ -15,18 +15,20 @@ on:
 env:
   refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
   refJavaee: b728442f1921282f5f3902fe5bdf7f4d2c7872ca
+  appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.40.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
   dbName: wlsdb${{ github.run_id }}${{ github.run_number }}
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
   location: ${{ github.event.inputs.region }}
+  logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
-  replicas: 1
+  replicas: 3
   resourceGroupForDB: wlsd-db-${{ github.run_id }}-${{ github.run_number }}
   resourceGroupForOpenLibertyAks: ol-aks-${{ github.event.inputs.disambiguationSuffix }}-${{ github.run_number }}
   aksRepoUserName: WASdev
-  aksRepoBranchName: b37f5abcb3085ed4220287abe9f76fbda67ebe3e
+  aksRepoBranchName: 964f6463d6cfda9572d215cdd53109cee8f4ff1e
 
 jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
@@ -202,9 +204,56 @@ jobs:
             --name openliberty-on-aks \
             --parameters @cargotracker/src/test/aks/parameters.json \
             --template-file ${artifactName}/mainTemplate.json
+  # Set up monitoring resources
+  deploy-azure-monitor:
+    needs: [deploy-openliberty-on-aks]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: azure/login@v1
+        id: azure-login
+        with:
+          creds: ${{ env.azureCredentials }}
+      - name: Deploy Log Analytics Workspace
+        id: deploy-log-analytics
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            az monitor log-analytics workspace create \
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --workspace-name ${{ env.logAnalyticsName }} \
+              --location ${{ env.location }}
+      - name: Enable Container Insights
+        id: enable-container-insights
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
+            aksClusterName=$(az aks list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+
+            az aks enable-addons \
+              --addons monitoring \
+              --name ${aksClusterName} \
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --workspace-resource-id ${workspaceId}
+      - name: Provision Application Insights
+        id: provision-app-insights
+        uses: azure/CLI@v1
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            az extension add --upgrade -n application-insights
+
+            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
+            az monitor app-insights component create \
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --app ${{ env.appInsightsName }} \
+              --location ${{ env.location }} \
+              --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
-    needs: [deploy-db,deploy-openliberty-on-aks]
+    needs: [deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
     steps:
       - name: Set up JDK 1.8
@@ -239,10 +288,16 @@ jobs:
           azureACRServer=$(az acr show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'loginServer' -o tsv)
           azureACRUserName=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'username' -o tsv)
           azureACRPassword=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'passwords[0].value' -o tsv)
+          
+          az extension add --upgrade -n application-insights
+          appInsightsConnectionString=$(az monitor app-insights component show \
+            --resource-group ${{env.resourceGroupForOpenLibertyAks}} \
+            --query '[0].connectionString' -o tsv)
 
           echo "azureACRServer=${azureACRServer}" >> $GITHUB_OUTPUT
           echo "azureACRUserName=${azureACRUserName}" >> $GITHUB_OUTPUT
           echo "azureACRPassword=${azureACRPassword}" >> $GITHUB_OUTPUT
+          echo "appInsightsConnectionString=${appInsightsConnectionString}" >> $GITHUB_OUTPUT
       - name: Checkout cargotracker
         uses: actions/checkout@v2
         with:
@@ -261,6 +316,7 @@ jobs:
           export DB_USER=${{ env.dbAdminUser }}@${{ env.dbName }}
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}
+          export APPLICATIONINSIGHTS_CONNECTION_STRING=${{steps.prepare_variables.outputs.appInsightsConnectionString}}
           mvn clean install -PopenLibertyOnAks --file cargotracker/pom.xml
       - name: Query version string for deployment verification
         run: |
@@ -292,6 +348,7 @@ jobs:
           timestampBeforePatchingDomain=$(date +%s)
           cd cargotracker/target/
           kubectl apply -f db-secret.yaml
+          kubectl apply -f app-insight.yaml
           kubectl apply -f openlibertyapplication.yaml
           # restart every time to make sure
           sleep 30
@@ -329,32 +386,66 @@ jobs:
           fi
       - name: Query Application URL
         run: |
-          externalIp=$(kubectl get service -o json | jq -r '.items[] | select(.metadata.name=="cargo-tracker-cluster") | .status.loadBalancer.ingress[0].ip')
-          echo "external ip is: " $externalIp
-          echo "appURL=${externalIp}:9080" >> $GITHUB_ENV
-      # Validate the app using playwright
-      - name: Verify that the app is update
+          gatewayPublicIPId=$(az network application-gateway list \
+            --resource-group ${{env.resourceGroupForOpenLibertyAks}} \
+            --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
+
+          gatewayUrl=$(az network public-ip show --ids ${gatewayPublicIPId} --query 'dnsSettings.fqdn' -o tsv)
+
+          appUrl="http://${gatewayUrl}/cargo-tracker/"
+
+          echo "appURL=${appUrl}" >> $GITHUB_ENV
+      # Make REST API calls to cause metrics, which will be shown in the Application Insights.
+      - name: Make REST API calls
         run: |
-          # install dependencies
-          sudo apt-get update
-          sudo apt-get install libegl1\
-                libhyphen0\
-                libopus0\
-                libwoff1\
-                libharfbuzz-icu0\
-                libgstreamer-plugins-base1.0-0\
-                libgstreamer-gl1.0-0\
-                libgstreamer-plugins-bad1.0-0\
-                libopenjp2-7\
-                libwebpdemux2\
-                libenchant1c2a\
-                libgles2\
-                gstreamer1.0-libav -y
-          appURL=http://${{ env.appURL }}/
-          cd cargotracker/src/test/aks/playwright-ui-test
-          mvn clean install
-          mvn exec:java -e -Dexec.mainClass=com.microsoft.azure.javaee.FetchBuildVersion -Dexec.args="'${appURL}' '${{ env.deployVersion }}'"
+          # wait for application ready
+          attempt=0
+          maxAttempt=50
+          statusCode=404
+
+          while [[ $attempt -le ${maxAttempt} ]] && [[ "${statusCode}" != "200" ]]; do
+            echo "attempt: ${attempt}"
+            statusCode=$(curl -s -o /dev/null -w "%{http_code}" ${appURL})
+            echo "http code: ${statusCode}"
+            attempt=$((attempt + 1))
+            sleep 20
+          done
+
+          if [[ ${attempt} -gt ${maxAttempt} ]]; then
+              echo "Failed to access ${appURL}. "
+              exit 1
+          fi
+         
+          # get request
+          curl -X GET -H "Accept: application/json" "${appURL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
+          
+          # post request
+          currentDateTime=$(date +'%m/%d/%Y %I:%M %p')
+          cat <<EOF >data.json
+          {
+            "completionTime": "${currentDateTime}",
+            "trackingId": "ABC123",
+            "eventType": "UNLOAD",
+            "unLocode": "USNYC",
+            "voyageNumber": "0200T"
+          }
+          EOF
+          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${appURL}rest/handling/reports
+          
+          # Datetime format Failure
+          currentDateTime=$(date +'%m/%d/%Y %H:%M:%S')
+          cat <<EOF >data.json
+          {
+            "completionTime": "${currentDateTime}",
+            "trackingId": "ABC123",
+            "eventType": "UNLOAD",
+            "unLocode": "USNYC",
+            "voyageNumber": "0200T"
+          }
+          EOF
+          curl -X POST -d "@data.json" -H "Content-Type: application/json" ${appURL}rest/handling/reports
+      
       # Print app URL to the pipeline summary page.
       - name: Print app URL
         run: |
-          echo "http://${appURL}" >> $GITHUB_STEP_SUMMARY
+          echo "${appURL}" >> $GITHUB_STEP_SUMMARY

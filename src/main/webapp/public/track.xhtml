@@ -17,10 +17,10 @@
 						<h:panelGrid columns="3" cellpadding="15">
 							<p>Enter your tracking ID:</p>
 							<p:inputText id="trackingIdInput"
-								value="#{publicTrack.trackingId}" required="true"
+								value="#{public.track.trackingId}" required="true"
 								placeholder="XYZ789" title="Valid tracking ID" />
 							<h:commandButton value="Track!"
-								action="#{publicTrack.onTrackById()}" />
+								action="#{public.track.onTrackById()}" />
 						</h:panelGrid>
 					</h:form>
 				</div>
@@ -31,23 +31,23 @@
 			</div>
 
 			<div class="ui-g-12">
-				<h:panelGroup rendered="#{not empty publicTrack.cargo}">
+				<h:panelGroup rendered="#{not empty public.track.cargo}">
 					<div id="result">
 						<p>
-							Cargo <strong>#{publicTrack.cargo.trackingId}</strong> is
-							currently <strong>#{publicTrack.cargo.statusText}</strong>
+							Cargo <strong>#{public.track.cargo.trackingId}</strong> is
+							currently <strong>#{public.track.cargo.statusText}</strong>
 						</p>
 
 						<p>
-							Estimated time of arrival in <strong>#{publicTrack.cargo.destinationName}</strong>:
-							#{publicTrack.cargo.eta}
+							Estimated time of arrival in <strong>#{public.track.cargo.destinationName}</strong>:
+							#{public.track.cargo.eta}
 						</p>
 						<ui:fragment
-							rendered="#{not empty publicTrack.cargo.nextExpectedActivity}">
-							<p>#{publicTrack.cargo.nextExpectedActivity}</p>
+							rendered="#{not empty public.track.cargo.nextExpectedActivity}">
+							<p>#{public.track.cargo.nextExpectedActivity}</p>
 						</ui:fragment>
 
-						<h:panelGroup rendered="#{publicTrack.cargo.misdirected}">
+						<h:panelGroup rendered="#{public.track.cargo.misdirected}">
 							<p>
 								<i class="fa fa-exclamation-triangle" style="color: #9b2332"></i>
 								Cargo is misdirected.
@@ -57,11 +57,11 @@
 				</h:panelGroup>
 
 				<h:outputLabel
-					value="Cargo with tracking ID #{publicTrack.trackingId} not found."
-					rendered="#{empty publicTrack.cargo and not empty publicTrack.trackingId}" />
+					value="Cargo with tracking ID #{public.track.trackingId} not found."
+					rendered="#{empty public.track.cargo and not empty public.track.trackingId}" />
 			</div>
 
-			<h:panelGroup rendered="#{not empty publicTrack.cargo}">
+			<h:panelGroup rendered="#{not empty public.track.cargo}">
 				<div class="ui-g ui-g-12">
 					<div class="ui-g-3">
 						<p:outputLabel value="Handling History"
@@ -74,7 +74,7 @@
 					</div>
 
 					<div class="ui-g-12">
-						<ui:repeat value="#{publicTrack.cargo.events}" var="leg">
+						<ui:repeat value="#{public.track.cargo.events}" var="leg">
 							<div>
 								<ui:fragment rendered="#{leg.expected}">
                                 &#160;&#160;<i class="fa fa-check"
@@ -88,14 +88,14 @@
 						</ui:repeat>
 
 						<h:outputLabel
-							value="There are no events recorded for the tracking ID #{publicTrack.cargo.trackingId}."
-							rendered="#{empty publicTrack.cargo.events}" />
+							value="There are no events recorded for the tracking ID #{public.track.cargo.trackingId}."
+							rendered="#{empty public.track.cargo.events}" />
 					</div>
 				</div>
 
 				<div id="map" class="ui-g-12">
 					<iframe class="mapFrame" width="100%" height="960"
-						src="#{request.contextPath}/public/mapFrame.xhtml?cargo=#{publicTrack.cargoAsJson}" />
+						src="#{request.contextPath}/public/mapFrame.xhtml?cargo=#{public.track.cargoAsJson}" />
 				</div>
 			</h:panelGroup>
 		</div>

@@ -1,0 +1,9 @@
+export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
+export RESOURCE_GROUP_NAME="abc1110rg" # customize this
+export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
+export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
+export DB_PASSWORD="Secret123456" # PostgreSQL database password
+export DB_PORT_NUMBER=5432
+export DB_NAME=postgres
+export DB_USER=liberty@${DB_RESOURCE_NAME}
+export NAMESPACE=default

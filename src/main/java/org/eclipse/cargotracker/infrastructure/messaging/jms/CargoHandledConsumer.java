@@ -11,7 +11,6 @@ import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import org.eclipse.cargotracker.application.CargoInspectionService;
 import org.eclipse.cargotracker.domain.model.cargo.TrackingId;
-import org.eclipse.cargotracker.infrastructure.messaging.JmsQueueNames;
 
 /**
  * Consumes JMS messages and delegates notification of misdirected cargo to the tracking service.
@@ -26,7 +25,7 @@ import org.eclipse.cargotracker.infrastructure.messaging.JmsQueueNames;
           propertyValue = "javax.jms.Queue"),
       @ActivationConfigProperty(
           propertyName = "destinationLookup",
-          propertyValue = JmsQueueNames.CARGO_HANDLED_QUEUE)
+          propertyValue = "java:app/jms/CargoHandledQueue")
     })
 public class CargoHandledConsumer implements MessageListener {
 

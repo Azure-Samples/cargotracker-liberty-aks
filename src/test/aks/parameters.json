@@ -25,6 +25,15 @@
         },
         "deployApplication": {
             "value": false
+        },
+        "enableAppGWIngress": {
+            "value": true
+        },
+        "appGatewayCertificateOption": {
+            "value": "generateCert"
+        },
+        "enableCookieBasedAffinity": {
+            "value": true
         }
     }
 }

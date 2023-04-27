@@ -10,14 +10,14 @@
 	</f:metadata>
 	<ui:define name="title">Cargo Details</ui:define>
 	<ui:define name="content">
-		<div class="ui-grid-col-3" id="leftCol"></div>
-		<div class="ui-grid-col-6" id="mainCol">
+			<div class="ui-grid-col-3" id="leftCol"></div>
+			<div class="ui-grid-col-6" id="mainCol">
 			<br />
 			<p:outputLabel
 				value="Routing Details for Cargo #{cargoDetails.cargo.trackingId}"
 				style="font-size: 2em; font-weight: bold" />
 			<p:separator />
-			<h:panelGrid columns="3" styleClass="registrationPanelGrid"
+			<h:panelGrid columns="2" styleClass="registrationPanelGrid"
 				cellpadding="5">
 
 				<p:outputLabel value="Origin:"
@@ -27,7 +27,6 @@
 					<p:outputLabel value="&#160;&#160;#{cargoDetails.cargo.originCode}"
 						style="color: #999999;font-size:.9em;" />
 				</h:panelGroup>
-				<p:outputLabel />
 
 				<p:outputLabel value="Destination:"
 					style="color: #5392c3;font-weight: bold;" />
@@ -37,7 +36,7 @@
 						value="&#160;&#160;#{cargoDetails.cargo.finalDestinationCode}"
 						style="color: #999999;font-size:.9em;" />
 				</h:panelGroup>
-				<p:outputLabel />
+
 				<p:outputLabel value="Arrival deadline:"
 					style="color: #5392c3;font-weight: bold;" />
 				<h:panelGroup>

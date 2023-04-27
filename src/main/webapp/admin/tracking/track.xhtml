@@ -16,12 +16,12 @@
 						<h:panelGrid columns="3" cellpadding="15">
 							<p>Enter your tracking ID:</p>
 							<p:autoComplete id="trackingIdInput"
-								value="#{adminTrack.trackingId}" required="true"
+								value="#{admin.track.trackingId}" required="true"
 								forceSelection="true" placeholder="XYZ789"
 								title="Valid tracking ID"
-								completeMethod="#{adminTrack.getTrackingIds}" />
+								completeMethod="#{admin.track.getTrackingIds}" />
 							<h:commandButton value="Track!"
-								action="#{adminTrack.onTrackById()}" />
+								action="#{admin.track.onTrackById()}" />
 						</h:panelGrid>
 					</h:form>
 				</div>
@@ -32,30 +32,30 @@
 			</div>
 
 			<div class="ui-g-12">
-				<h:panelGroup rendered="#{not empty adminTrack.cargo}">
+				<h:panelGroup rendered="#{not empty admin.track.cargo}">
 					<div id="result">
 
 						<p>
-							Cargo <strong><h:link value="#{adminTrack.trackingId}"
+							Cargo <strong><h:link value="#{admin.track.trackingId}"
 									id="trackingId" outcome="/admin/show.xhtml?faces-redirect=true"
 									style="text-decoration: none;color: black;">
-									<f:param name="trackingId" value="#{adminTrack.trackingId}" />
-								</h:link></strong> is currently <strong>#{adminTrack.cargo.statusText}</strong>
+									<f:param name="trackingId" value="#{admin.track.trackingId}" />
+								</h:link></strong> is currently <strong>#{admin.track.cargo.statusText}</strong>
 						</p>
 
 						<p:tooltip id="toolTipFade" for="trackingId"
 							value="Click to see itinerary's details." />
 
 						<p>
-							Estimated time of arrival in <strong>#{adminTrack.cargo.destination}</strong>:
-							#{adminTrack.cargo.eta}
+							Estimated time of arrival in <strong>#{admin.track.cargo.destination}</strong>:
+							#{admin.track.cargo.eta}
 						</p>
 						<ui:fragment
-							rendered="#{not empty adminTrack.cargo.nextExpectedActivity}">
-							<p>#{adminTrack.cargo.nextExpectedActivity}</p>
+							rendered="#{not empty admin.track.cargo.nextExpectedActivity}">
+							<p>#{admin.track.cargo.nextExpectedActivity}</p>
 						</ui:fragment>
 
-						<h:panelGroup rendered="#{adminTrack.cargo.misdirected}">
+						<h:panelGroup rendered="#{admin.track.cargo.misdirected}">
 							<p>
 								<i class="fa fa-exclamation-triangle" style="color: #9b2332"></i>
 								Cargo is misdirected.
@@ -65,11 +65,11 @@
 				</h:panelGroup>
 
 				<h:outputLabel
-					value="Cargo with tracking ID #{adminTrack.trackingId} not found."
-					rendered="#{empty adminTrack.cargo and not empty adminTrack.trackingId}" />
+					value="Cargo with tracking ID #{admin.track.trackingId} not found."
+					rendered="#{empty admin.track.cargo and not empty admin.track.trackingId}" />
 			</div>
 
-			<h:panelGroup rendered="#{not empty adminTrack.cargo}">
+			<h:panelGroup rendered="#{not empty admin.track.cargo}">
 				<div class="ui-g ui-g-12">
 					<div class="ui-g-3">
 						<p:outputLabel value="Handling History"
@@ -82,7 +82,7 @@
 					</div>
 
 					<div class="ui-g-12">
-						<ui:repeat value="#{adminTrack.cargo.events}" var="event">
+						<ui:repeat value="#{admin.track.cargo.events}" var="event">
 							<div>
 								<ui:fragment rendered="#{event.expected}">
                                 &#160;&#160;<i class="fa fa-check"
@@ -96,8 +96,8 @@
 						</ui:repeat>
 
 						<h:outputLabel
-							value="There are no events recorded for the tracking ID #{adminTrack.cargo.trackingId}."
-							rendered="#{empty adminTrack.cargo.events}" />
+							value="There are no events recorded for the tracking ID #{admin.track.cargo.trackingId}."
+							rendered="#{empty admin.track.cargo.events}" />
 					</div>
 				</div>
 			</h:panelGroup>

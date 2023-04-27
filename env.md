@@ -62,6 +62,7 @@ export DB_NAME=postgres
 export DB_USER=ejb010212d@ejb010212d
 export DB_PASSWORD='Secret123!'
 export NAMESPACE=default
+export APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx;IngestionEndpoint=https://eastus-6.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/'
 
 echo REGISTRY_NAME=${REGISTRY_NAME}
 echo LOGIN_SERVER=${LOGIN_SERVER}

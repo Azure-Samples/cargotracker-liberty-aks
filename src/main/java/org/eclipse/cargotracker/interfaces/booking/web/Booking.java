@@ -6,7 +6,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.SessionScoped;
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
 import javax.faces.flow.FlowScoped;
@@ -27,8 +26,7 @@ import org.primefaces.PrimeFaces;
  * polarized ways to build user interfaces.
  */
 @Named
-// @FlowScoped("booking")
-@SessionScoped
+@FlowScoped("booking")
 public class Booking implements Serializable {
 
   private static final long serialVersionUID = 1L;

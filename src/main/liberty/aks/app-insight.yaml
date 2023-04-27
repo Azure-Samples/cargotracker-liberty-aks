@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-insight-secret
+  namespace: ${param.namespace}
+type: Opaque
+stringData:  
+  connection.string: "${param.app.insight.connection.string}"

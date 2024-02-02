@@ -86,7 +86,7 @@ cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotrac
 Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the following information. You can keep them with default values.
 
 ```bash
-export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
+export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
 export RESOURCE_GROUP_NAME="abc1110rg" # customize this
 export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
 export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name

@@ -122,15 +122,17 @@ USE_GITHUB_CLI=false
 # Execute commands
 msg "${GREEN}(3/4) Create Azure credentials ${SERVICE_PRINCIPAL_NAME} with Contributor and User Access Administrator role in subscription scope."
 SUBSCRIPTION_ID=$(az account show --query id --output tsv --only-show-errors)
+msg "Subscription id is $SUBSCRIPTION_ID"
 
 ### AZ ACTION CREATE
-AZURE_CREDENTIALS=$(az ad sp create-for-rbac --name ${SERVICE_PRINCIPAL_NAME} --role "Contributor" --scopes "/subscriptions/${SUBSCRIPTION_ID}" --sdk-auth --only-show-errors)
+AZURE_CREDENTIALS=$(az ad sp create-for-rbac --display-name ${SERVICE_PRINCIPAL_NAME} --only-show-errors)
 SP_OBJECT_ID_ARRAY=$(az ad sp list --display-name ${SERVICE_PRINCIPAL_NAME} --query "[].appId") || true
 # remove whitespace
 SP_OBJECT_ID_ARRAY=$(echo ${SP_OBJECT_ID_ARRAY} | xargs) || true
 SP_OBJECT_ID_ARRAY=${SP_OBJECT_ID_ARRAY//[/}
 SP_OBJECT_ID=${SP_OBJECT_ID_ARRAY//]/}
-az role assignment create --assignee ${SP_OBJECT_ID} --role "User Access Administrator" --subscription "${SUBSCRIPTION_ID}"
+az role assignment create --assignee ${SP_OBJECT_ID} --role "User Access Administrator" --scope "/subscriptions/${SUBSCRIPTION_ID}"
+az role assignment create --assignee ${SP_OBJECT_ID} --role "Contributor" --scope "/subscriptions/${SUBSCRIPTION_ID}"
 
 msg "${GREEN}(4/4) Create secrets in GitHub"
 if $USE_GITHUB_CLI; then

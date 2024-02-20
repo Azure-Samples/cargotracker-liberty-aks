@@ -1,8 +1,8 @@
 # Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)
 
-This quickstart shows you how to deploy an existing Liberty application to AKS using Liberty on AKS solution templates. When you're finished, you can continue to manage the application via the Azure CLI or Azure Portal.
+This sample shows you how to deploy an existing Liberty application to AKS using Liberty on AKS solution templates. When you're finished, you can continue to manage the application via the Azure CLI or Azure Portal.
 
-Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running in Azure Kubernetes Service (AKS). This [quickstart](https://learn.microsoft.com/azure/aks/howto-deploy-java-liberty-app) uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The application is exposed by Azure Application Gateway service.
+Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application is built with Maven and deployed to Open Liberty running on Azure Kubernetes Service (AKS). The application is exposed by Azure Application Gateway service. For quickstart uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks), see [Deploy a Java application with Open Liberty or WebSphere Liberty on an Azure Kubernetes Service (AKS) cluster](https://learn.microsoft.com/azure/aks/howto-deploy-java-liberty-app). 
 
 * [Deploy Cargo Tracker to Open Liberty on Azure Kubernetes Service (AKS)]()
   * [Introduction](#introduction)
@@ -29,34 +29,34 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
 
 ## Introduction
 
-In this quickstart, you will:
+In this sample, you will:
 
-* Deploying Cargo Tracker:
+* Deploy Cargo Tracker:
   * Create PostgreSQL Database
   * Create the Cargo Tracker - build with Maven
-  * Provisioning Azure Infra Services with BICEP templates
+  * Provision Azure Infra Services with BICEP templates
     * Create an Azure Container Registry
     * Create an Azure Kubernetes Service
-    * Build your application, Open Liberty into an image
+    * Build your application, Open Liberty into a container image
     * Push your application image to the container registry
     * Deploy your application to AKS
-    * Expose your application with the Azure Application Gateway service
+    * Expose your application with the Azure Application Gateway
   * Verify your application
   * Monitor application
   * Automate deployments using GitHub Actions
 
 ## Prerequisites
 
-- [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/). This quickstart was tested with:
-  - JDK: openjdk version "11.0.18" 2023-01-17 LTS.
-  - GIT: git version 2.33.6.
+- [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/). This sample was tested with:
+  - JDK: openjdk version `11.0.18 2023-01-17 LTS`.
+  - GIT: git version `2.33.6`.
   - Kubernetes CLI version as following:
 
      ```bash
      Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
      Kustomize Version: v4.5.7
      ```
-  - Maven: Apache Maven 3.8.7 (NON_CANONICAL).
+  - Maven: Apache Maven `3.8.7` (NON_CANONICAL).
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
@@ -86,7 +86,7 @@ cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotrac
 Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the following information. You can keep them with default values.
 
 ```bash
-export LIBERTY_AKS_REPO_REF="964f6463d6cfda9572d215cdd53109cee8f4ff1e" # WASdev/azure.liberty.aks
+export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
 export RESOURCE_GROUP_NAME="abc1110rg" # customize this
 export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
 export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
@@ -199,7 +199,7 @@ EOF
 
 ### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
 
-Invoke the Bicep template in ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep to deploy Open Liberty Operator on AKS.
+Invoke the Bicep template in `${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep` to deploy Open Liberty Operator on AKS.
 
 Run the following command to validate the parameter file.
 
@@ -225,7 +225,7 @@ az deployment group create \
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
 
-If you are using Azure Cloud Shell, the terminal may have been disconnected, run source <path-to>/cargotracker/.scripts/setup-env-variables.sh to set the variables.
+If you are using Azure Cloud Shell, and the terminal is disconnected, run source <path-to>/cargotracker/.scripts/setup-env-variables.sh to set the variables.
 
 ### Create an Azure Database for PostgreSQL instance
 
@@ -264,7 +264,6 @@ az extension add --upgrade -n application-insights
 Create a Log Analytics Workspace.
 
 ```bash
-WORKSPACE_NAME="loga$(date +%s)"
 az monitor log-analytics workspace create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --workspace-name ${WORKSPACE_NAME} \
@@ -289,7 +288,6 @@ az aks enable-addons \
 Next, provision Application Insights.
 
 ```bash
-APPINSIGHTS_NAME="appinsights$(date +%s)"
 az monitor app-insights component create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --app ${APPINSIGHTS_NAME} \
@@ -326,7 +324,7 @@ Now, it's ready to build Cargo Tracker.
 mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
 ```
 
-The war file locates in `${DIR}/cargotracker/target/cargo-tracker.war`. 
+The war file locates at `${DIR}/cargotracker/target/cargo-tracker.war`. 
 
 The following steps are to build a container image which will be deployed to AKS. 
 
@@ -364,7 +362,7 @@ kubectl apply -f ${DIR}/cargotracker/target/openlibertyapplication.yaml
 kubectl get pod -w
 ```
 
-Press `Control + C` to exit the watching mode.
+Press `Control + C` to exit the watching mode. 
 
 Now, Cargo Tracker is running on Open Liberty, and connecting to Application Insights. You are able to monitor the application.
 
@@ -455,6 +453,8 @@ EOF
 curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
 ```
 
+The above request causes an error with message like "Error 500: java.time.format.DateTimeParseException: Text &#39;02/01/2024 08:04:49&#39; could not be parsed at index 16".
+
 #### Start monitoring Cargo Tracker in Application Insights
 
 Open the Application Insights and start monitoring Cargo Tracker. You can find the Application Insights in the same Resource Group where you created deployments using Bicep templates.
@@ -493,13 +493,7 @@ Navigate to the Live Metrics blade - you can see live metrics on screen with low
 
 #### Start monitoring Liberty logs in Azure Log Analytics
 
-Open the Log Analytics that created in previous steps.
-
-In the Log Analytics page, select `Logs` blade and run any of the sample queries supplied below for Open Liberty server logs.
-
-Make sure the quary scope is your aks instance.
-
-First, get the pod name of each server.
+Get the pod name of each server in your terminal.
 
 ```bash
 kubectl get pod
@@ -515,34 +509,30 @@ cargo-tracker-cluster-7c6df94fc7-pr6zj    1/1     Running   0          2m50s
 olo-controller-manager-77cc59655b-2r5qg   1/1     Running   0          2d5h
 ```
 
+Open the Log Analytics that created in previous steps.
+
+In the Log Analytics landing page, select `Logs` blade and run any of the sample queries supplied below for Open Liberty server logs.
+
+Make sure the quary scope is your aks instance.
+
 Type and run the following Kusto query to see operator logs, replace the `ContainerHostname` with the operator pod name displayed above.
 
 ```sql
-ContainerInventory
-| where ContainerHostname == 'olo-controller-manager-77cc59655b-2r5qg' 
-| project ContainerID
-| take 1
-| join (ContainerLog
-    | project  ContainerID, LogEntry, TimeGenerated)
-    on ContainerID
+ContainerLogV2 
+| where PodName == "olo-controller-manager-77cc59655b-2r5qg"
+| project ContainerName, LogMessage, TimeGenerated
 | sort by TimeGenerated
 | limit 500
-| project LogEntry
 ```
 
 Type and run the following Kusto query to see Open Liberty server logs, replace the `ContainerHostname` with one of Open Liberty server name displayed above.
 
-```bash
-ContainerInventory
-| where ContainerHostname == 'cargo-tracker-cluster-7c6df94fc7-5rpjd' 
-| project ContainerID
-| take 1
-| join (ContainerLog
-    | project  ContainerID, LogEntry, TimeGenerated)
-    on ContainerID
+```sql
+ContainerLogV2 
+| where PodName == "cargo-tracker-cluster-7c6df94fc7-5rpjd"
+| project ContainerName, LogMessage, TimeGenerated
 | sort by TimeGenerated
 | limit 500
-| project LogEntry
 ```
 
 You can change the server pod name to query expected server logs.
@@ -575,7 +565,7 @@ Type and run the following Kusto query to obtain specified failed request:
 
 ```sql
 AppRequests 
-| where OperationName == "POST /cargo-tracker/rest/handling/reports" and ResultCode == "500"
+| where  OperationName contains "POST" and ResultCode == "500"
 ```
 
 ## Unit-2 - Automate deployments using GitHub Actions
@@ -598,7 +588,7 @@ This creates a local copy of the repository for you to work in.
 
 ### Workflow description
 
-As mentioned above, the app template uses the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks). The workflow uses the source code behind that offer by checking it out and invoking it from Azure CLI.
+The workflow uses the source code behind the [official Azure offer for running Liberty on AKS](https://aka.ms/liberty-aks) by checking it out and invoking it from Azure CLI.
 
 #### Job: preflight
 

@@ -518,7 +518,7 @@ jobs:
 # File error message to specified Teams channel.
   alert:
     if: failure()
-    needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
+    needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker, cleanup]
     runs-on: ubuntu-latest
     steps:
       - name: Send Teams message

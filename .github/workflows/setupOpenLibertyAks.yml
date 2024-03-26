@@ -467,7 +467,7 @@ jobs:
         run: |
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
 
-cleanup:
+  cleanup:
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest
@@ -488,7 +488,7 @@ cleanup:
             echo "delete... " ${{ env.resourceGroupForDB }}
             az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}
 
-alert:
+  alert:
     if: failure()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest

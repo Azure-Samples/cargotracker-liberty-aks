@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
         deleteResource: ${{steps.setup-env-variables.outputs.deleteResource}}
-        location: ${{ steps.setup-env-variables.outputs.region }}
+        location: ${{ steps.setup-env-variables.outputs.location }}
         resourceGroupForOpenLibertyAks: ol-aks-${{ steps.setup-env-variables.outputs.disambiguationSuffix }}-${{ github.run_number }}
     steps:      
       - name: Set up ENV variables

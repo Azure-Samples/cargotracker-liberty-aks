@@ -24,13 +24,13 @@ env:
   appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.40.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
-  dbName: wlsdb${{ github.run_id }}${{ github.run_number }}
+  dbName: libertydb${{ github.run_id }}${{ github.run_number }}
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
   logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
-  resourceGroupForDB: wlsd-db-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForDB: liberty-db-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 5c3f60fffdfd1219036bac2e50c51a53a97f21e3
 

@@ -298,9 +298,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Set variables
-          run: |
-            echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
-            echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
+        run: |
+          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
+          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:

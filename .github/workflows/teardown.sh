@@ -47,7 +47,7 @@ SERVICE_PRINCIPAL_NAME=${DISAMBIG_PREFIX}sp
 # Execute commands
 msg "${GREEN}(1/3) Delete service principal ${SERVICE_PRINCIPAL_NAME}"
 SUBSCRIPTION_ID=$(az account show --query id --output tsv --only-show-errors)
-SP_OBJECT_ID_ARRAY=$(az ad sp list --display-name ${SERVICE_PRINCIPAL_NAME} --query "[].appId") || true
+SP_OBJECT_ID_ARRAY=$(az ad sp list --display-name ${SERVICE_PRINCIPAL_NAME} --query "\[\].appId") || true
 # remove whitespace
 SP_OBJECT_ID_ARRAY=$(echo ${SP_OBJECT_ID_ARRAY} | xargs) || true
 SP_OBJECT_ID_ARRAY=${SP_OBJECT_ID_ARRAY//[/}

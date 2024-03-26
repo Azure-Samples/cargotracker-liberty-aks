@@ -10,7 +10,13 @@ on:
         description: "Azure region for resources"
         required: true
         default: eastus
+      deleteResource:
+        description: "True to delete all the Azure resources after the deployments. False to keep Azure resources."
+        default: "true"
+        required: true
   repository_dispatch:
+  schedule:
+    - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.
 
 env:
   refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
@@ -35,6 +41,17 @@ jobs:
   preflight:
     runs-on: ubuntu-20.04
     steps:
+      outputs:
+        deleteResource: ${{steps.setup-env-variables.outputs.deleteResource}}
+      - name: Set up ENV variables
+        id: setup-env-variables
+        run: |
+          deleteResource=${{ github.event.inputs.deleteResource }}
+          if [ ${{ github.event.inputs.deleteResource }} == '' ]; then
+            deleteResource='true'
+          fi
+          echo "deleteResource: ${deleteResource}"
+          echo "deleteResource=${deleteResource}" >> $GITHUB_OUTPUT
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.11.1/bicep-linux-x64
@@ -449,3 +466,44 @@ jobs:
       - name: Print app URL
         run: |
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
+
+cleanup:
+    if: always()
+    needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v1
+        id: azure-login
+        with:
+          creds: ${{ env.azureCredentials }}
+      - name: Delete Azure resources.
+        uses: azure/CLI@v1
+        if: ${{ needs.preflight.outputs.deleteResource == 'true' }}
+        with:
+          azcliversion: ${{ env.azCliVersion }}
+          inlineScript: |
+            echo "delete... " ${{ needs.preflight.outputs.resourceGroupForWlsAks }}
+            az group delete --yes --no-wait --verbose --name ${{ needs.preflight.outputs.resourceGroupForWlsAks }}
+
+            echo "delete... " ${{ env.resourceGroupForDB }}
+            az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}
+
+alert:
+    if: failure()
+    needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Teams message
+        if: ${{ github.repository_owner == 'galiacheng' }}
+        run: |
+          echo "Job failed, send notification to Teams"
+          # https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=dotnet
+          curl ${{ secrets.MSTEAMS_WEBHOOK }} \
+            -H 'Content-Type: application/json' \
+            --data-binary @- << EOF
+            {
+            "@context":"http://schema.org/extensions",
+            "@type":"MessageCard",
+            "text":"Workflow failed in cargotracker-liberty-aks repository, please take a look at: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${{ github.run_id }}"
+            }
+          EOF

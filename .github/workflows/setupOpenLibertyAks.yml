@@ -40,9 +40,9 @@ jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
   preflight:
     runs-on: ubuntu-20.04
-    steps:
-      outputs:
+    outputs:
         deleteResource: ${{steps.setup-env-variables.outputs.deleteResource}}
+    steps:      
       - name: Set up ENV variables
         id: setup-env-variables
         run: |

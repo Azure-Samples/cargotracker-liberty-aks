@@ -482,8 +482,8 @@ jobs:
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "delete... " ${{ needs.preflight.outputs.resourceGroupForWlsAks }}
-            az group delete --yes --no-wait --verbose --name ${{ needs.preflight.outputs.resourceGroupForWlsAks }}
+            echo "delete... " ${{ env.resourceGroupForOpenLibertyAks }}
+            az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForOpenLibertyAks }}
 
             echo "delete... " ${{ env.resourceGroupForDB }}
             az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}

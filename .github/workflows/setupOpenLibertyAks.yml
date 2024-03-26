@@ -135,7 +135,7 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForDB }}
-            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ env.location }}
+            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${location}
       - name: Set Up Azure Postgresql to Test dbTemplate
         id: setup-postgresql
         uses: azure/CLI@v1
@@ -146,7 +146,7 @@ jobs:
             az postgres server create \
             --resource-group ${{ env.resourceGroupForDB }} \
             --name ${{ env.dbName }}  \
-            --location ${{ env.location }} \
+            --location ${location} \
             --admin-user ${{ env.dbAdminUser }} \
             --ssl-enforcement Disabled \
             --public-network-access Enabled \
@@ -198,8 +198,8 @@ jobs:
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "create resource group" ${{ env.resourceGroupForOpenLibertyAks }}
-            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ env.location }}
+            echo "create resource group" ${resourceGroupForOpenLibertyAks}
+            az group create --verbose --name ${resourceGroupForOpenLibertyAks} --location ${location}
       - name: Checkout cargotracker
         uses: actions/checkout@v2
         with:
@@ -225,7 +225,7 @@ jobs:
           inlineScript: |
             az deployment group validate \
             --debug \
-            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+            --resource-group ${resourceGroupForOpenLibertyAks} \
             --name openliberty-on-aks \
             --parameters @cargotracker/src/test/aks/parameters.json \
             --template-file ${artifactName}/mainTemplate.json
@@ -237,7 +237,7 @@ jobs:
           inlineScript: |
             az deployment group create \
             --verbose \
-            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+            --resource-group ${resourceGroupForOpenLibertyAks} \
             --name openliberty-on-aks \
             --parameters @cargotracker/src/test/aks/parameters.json \
             --template-file ${artifactName}/mainTemplate.json
@@ -261,22 +261,22 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             az monitor log-analytics workspace create \
-              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --resource-group ${resourceGroupForOpenLibertyAks} \
               --workspace-name ${{ env.logAnalyticsName }} \
-              --location ${{ env.location }}
+              --location ${location}
       - name: Enable Container Insights
         id: enable-container-insights
         uses: azure/CLI@v1
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
-            aksClusterName=$(az aks list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+            workspaceId=$(az monitor log-analytics workspace list -g ${resourceGroupForOpenLibertyAks} --query '[0].id' -o tsv)
+            aksClusterName=$(az aks list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
 
             az aks enable-addons \
               --addons monitoring \
               --name ${aksClusterName} \
-              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --resource-group ${resourceGroupForOpenLibertyAks} \
               --workspace-resource-id ${workspaceId}
       - name: Provision Application Insights
         id: provision-app-insights
@@ -286,11 +286,11 @@ jobs:
           inlineScript: |
             az extension add --upgrade -n application-insights
 
-            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
+            workspaceId=$(az monitor log-analytics workspace list -g ${resourceGroupForOpenLibertyAks} --query '[0].id' -o tsv)
             az monitor app-insights component create \
-              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --resource-group ${resourceGroupForOpenLibertyAks} \
               --app ${{ env.appInsightsName }} \
-              --location ${{ env.location }} \
+              --location ${location} \
               --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
@@ -317,26 +317,26 @@ jobs:
         id: prepare_variables
         run: |
           echo "Query AKS cluster name"
-          aksClusterName=$(az aks list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+          aksClusterName=$(az aks list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
           if [ -z "${aksClusterName}" ] ; then
             echo "Failed to obtain AKS. Exiting."
             exit 1
           fi
           echo "aksClusterName=${aksClusterName}" >> $GITHUB_ENV
 
-          acrName=$(az acr list  -g ${{env.resourceGroupForOpenLibertyAks}} --query [0].name -o tsv)
+          acrName=$(az acr list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
           if [ -z "${acrName}" ] ; then
             echo "Falied to obtain ACR. Exiting."
             exit 1
           fi
 
-          azureACRServer=$(az acr show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'loginServer' -o tsv)
-          azureACRUserName=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'username' -o tsv)
-          azureACRPassword=$(az acr credential show -n $acrName -g ${{env.resourceGroupForOpenLibertyAks}} --query 'passwords[0].value' -o tsv)
+          azureACRServer=$(az acr show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'loginServer' -o tsv)
+          azureACRUserName=$(az acr credential show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'username' -o tsv)
+          azureACRPassword=$(az acr credential show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'passwords[0].value' -o tsv)
           
           az extension add --upgrade -n application-insights
           appInsightsConnectionString=$(az monitor app-insights component show \
-            --resource-group ${{env.resourceGroupForOpenLibertyAks}} \
+            --resource-group ${resourceGroupForOpenLibertyAks} \
             --query '[0].connectionString' -o tsv)
 
           echo "azureACRServer=${azureACRServer}" >> $GITHUB_OUTPUT
@@ -386,7 +386,7 @@ jobs:
       - name: Connect to AKS cluster
         run: |
           echo "connect to cluster"
-          az aks get-credentials --resource-group ${{ env.resourceGroupForOpenLibertyAks }} --name ${aksClusterName}
+          az aks get-credentials --resource-group ${resourceGroupForOpenLibertyAks} --name ${aksClusterName}
       - name: Apply deployment files
         run: |
           echo "record time before restart"
@@ -432,7 +432,7 @@ jobs:
       - name: Query Application URL
         run: |
           gatewayPublicIPId=$(az network application-gateway list \
-            --resource-group ${{env.resourceGroupForOpenLibertyAks}} \
+            --resource-group ${resourceGroupForOpenLibertyAks} \
             --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
 
           gatewayUrl=$(az network public-ip show --ids ${gatewayPublicIPId} --query 'dnsSettings.fqdn' -o tsv)
@@ -510,8 +510,8 @@ jobs:
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "delete... " ${{ env.resourceGroupForOpenLibertyAks }}
-            az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForOpenLibertyAks }}
+            echo "delete... " ${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}
+            az group delete --yes --no-wait --verbose --name ${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}
 
             echo "delete... " ${{ env.resourceGroupForDB }}
             az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}

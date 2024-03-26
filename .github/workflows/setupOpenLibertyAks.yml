@@ -27,12 +27,10 @@ env:
   dbName: wlsdb${{ github.run_id }}${{ github.run_number }}
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
-  location: ${{ github.event.inputs.region }}
   logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
   resourceGroupForDB: wlsd-db-${{ github.run_id }}-${{ github.run_number }}
-  resourceGroupForOpenLibertyAks: ol-aks-${{ github.event.inputs.disambiguationSuffix }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 5c3f60fffdfd1219036bac2e50c51a53a97f21e3
 
@@ -42,6 +40,8 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
         deleteResource: ${{steps.setup-env-variables.outputs.deleteResource}}
+        location: ${{ steps.setup-env-variables.outputs.region }}
+        resourceGroupForOpenLibertyAks: ol-aks-${{ steps.setup-env-variables.outputs.disambiguationSuffix }}-${{ github.run_number }}
     steps:      
       - name: Set up ENV variables
         id: setup-env-variables
@@ -51,7 +51,20 @@ jobs:
             deleteResource='true'
           fi
           echo "deleteResource: ${deleteResource}"
+
+          location=${{ github.event.inputs.region }}
+          if [[ -z "${location}" ]];then
+            location=eastus
+          fi
+
+          disambiguationSuffix=${{ github.event.inputs.disambiguationSuffix }}
+          if [[ -z "${disambiguationSuffix}" ]];then
+            disambiguationSuffix=$(date +%m%d)
+          fi
+
           echo "deleteResource=${deleteResource}" >> $GITHUB_OUTPUT
+          echo "location=${location}" >> $GITHUB_OUTPUT
+          echo "disambiguationSuffix=${disambiguationSuffix}" >> $GITHUB_OUTPUT
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.11.1/bicep-linux-x64
@@ -109,6 +122,9 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     steps:
+      - name: Set variables
+        run: |
+          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
       - uses: azure/login@v1
         id: azure-login
         with:
@@ -148,6 +164,10 @@ jobs:
     needs: preflight
     runs-on: ubuntu-20.04
     steps:
+      - name: Set variables
+        run: |
+          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
+          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
         uses: actions/checkout@v2
         with:
@@ -223,9 +243,13 @@ jobs:
             --template-file ${artifactName}/mainTemplate.json
   # Set up monitoring resources
   deploy-azure-monitor:
-    needs: [deploy-openliberty-on-aks]
+    needs: [preflight, deploy-openliberty-on-aks]
     runs-on: ubuntu-20.04
     steps:
+      - name: Set variables
+        run: |
+          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
+          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - uses: azure/login@v1
         id: azure-login
         with:
@@ -270,9 +294,13 @@ jobs:
               --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
-    needs: [deploy-db,deploy-azure-monitor]
+    needs: [preflight, deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
     steps:
+     - name: Set variables
+        run: |
+          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
+          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:
@@ -466,7 +494,7 @@ jobs:
       - name: Print app URL
         run: |
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
-
+ # Delete azure resources
   cleanup:
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
@@ -487,7 +515,7 @@ jobs:
 
             echo "delete... " ${{ env.resourceGroupForDB }}
             az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}
-
+# File error message to specified Teams channel.
   alert:
     if: failure()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]

@@ -127,7 +127,7 @@ msg "Subscription id is $SUBSCRIPTION_ID"
 ### AZ ACTION CREATE
 # --sdk-auth will be deprecated
 SP_SECRET=$(az ad sp create-for-rbac --display-name ${SERVICE_PRINCIPAL_NAME} --only-show-errors --query "password" --output tsv)
-SP_OBJECT_ID=$(az ad sp list --display-name ${SERVICE_PRINCIPAL_NAME} --query "[0].appId" --output tsv)
+SP_OBJECT_ID=$(az ad sp list --display-name ${SERVICE_PRINCIPAL_NAME} --query \[0\].appId --output tsv)
 TENANT_ID=$(az account show --query tenantId --output tsv --only-show-errors)
 az role assignment create --assignee ${SP_OBJECT_ID} --role "User Access Administrator" --scope "/subscriptions/${SUBSCRIPTION_ID}"
 az role assignment create --assignee ${SP_OBJECT_ID} --role "Contributor" --scope "/subscriptions/${SUBSCRIPTION_ID}"

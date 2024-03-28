@@ -47,7 +47,7 @@ jobs:
         id: setup-env-variables
         run: |
           deleteResource=${{ github.event.inputs.deleteResource }}
-          if [ ${{ github.event.inputs.deleteResource }} == '' ]; then
+          if [ -z ${deleteResource} ]; then
             deleteResource='true'
           fi
           echo "deleteResource: ${deleteResource}"

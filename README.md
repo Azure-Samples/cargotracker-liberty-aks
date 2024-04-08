@@ -73,11 +73,15 @@ mkdir cargotracker-liberty-aks
 DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
+cd ${DIR}/cargotracker
+git checkout 20240408
 ```
+
+If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.
 
 ### Prepare your variables for deployments
 
-Create a bash script with environment variables by making a copy of the supplied template:
+Create a bash script with environment variables by making a copy of the supplied template. Customize the variables indicated.
 
 ```bash
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
@@ -106,6 +110,7 @@ source ${DIR}/cargotracker/.scripts/setup-env-variables.sh
 ### Clone Liberty on AKS Bicep templates
 
 ```bash
+cd ${DIR}
 git clone https://github.com/WASdev/azure.liberty.aks ${DIR}/azure.liberty.aks
 
 cd ${DIR}/azure.liberty.aks
@@ -119,7 +124,7 @@ cd ${DIR}
 If you haven't already, sign into your Azure subscription by using the `az login` command and follow the on-screen directions.
 
 ```bash
-az login
+az login --use-device-code
 ```
 
 If you have multiple Azure tenants associated with your Azure credentials, you must specify which tenant you want to sign in to. You can do this with the `--tenant` option. For example, `az login --tenant contoso.onmicrosoft.com`.
@@ -211,7 +216,13 @@ az deployment group validate \
   --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
 ```
 
-The command should be completed without error. If there is, you must resolve it before moving on.
+The command should be completed without error. If there is, you must resolve it before moving on. Verify the exit status from the command by examining shell's exit status. In POSIX environments, this is `$?`.
+
+```bash
+echo $?
+```
+
+The value must be **0**.
 
 Next, invoke the template.
 
@@ -225,11 +236,11 @@ az deployment group create \
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
 
-If you are using Azure Cloud Shell, and the terminal is disconnected, run source <path-to>/cargotracker/.scripts/setup-env-variables.sh to set the variables.
+If you are using Azure Cloud Shell, and the terminal is disconnected, run `source <path-to>/cargotracker/.scripts/setup-env-variables.sh` to set the variables.
 
 ### Create an Azure Database for PostgreSQL instance
 
-Use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
+While the previous command runs, use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
 
 ```bash
 az postgres server create \
@@ -276,7 +287,7 @@ WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME}
 This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
+AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
@@ -324,7 +335,7 @@ Now, it's ready to build Cargo Tracker.
 mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
 ```
 
-The war file locates at `${DIR}/cargotracker/target/cargo-tracker.war`. 
+The war file is created at `${DIR}/cargotracker/target/cargo-tracker.war`. 
 
 The following steps are to build a container image which will be deployed to AKS. 
 
@@ -335,7 +346,7 @@ IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' -
 IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
 ```
 
-Run `ac acr built` command to build the container image.
+Run `ac acr build` command to build the container image.
 
 ```bash
 cd ${DIR}/cargotracker/target
@@ -345,7 +356,7 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
+AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
 ```
@@ -372,9 +383,7 @@ This section uses Application Insights and Azure Log Analytics to monitor Open L
 
 #### Use Cargo Tracker and make a few HTTP calls
 
-You can open Cargo Tracker in your web browser and follow [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality) to make some calls.
-
-Use the following commands to obtain URL of Cargo Tracker. When accessing the application, if you get "502 Bad Gateway" response, just wait a few minutes.
+You can open Cargo Tracker in your web browser. Use the following commands to obtain URL of Cargo Tracker. When accessing the application, if you get "502 Bad Gateway" response, just wait a few minutes.
 
 
 ```bash
@@ -382,12 +391,14 @@ GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
 
-GATEWAY_URL=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
+GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
 
-CARGO_TRACKER_URL="http://${GATEWAY_URL}/cargo-tracker/"
+CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
 
 echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 ```
+
+Once you have the URL, follow [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality) to make some calls.
 
 You can also `curl` the REST API exposed by Cargo Tracker. It's strongly recommended you get familiar with Cargo Tracker with the above exercise.
 

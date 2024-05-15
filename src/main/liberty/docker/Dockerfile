@@ -1,5 +1,5 @@
 # open liberty base image
-FROM openliberty/open-liberty:full-java11-openj9-ubi
+FROM openliberty/open-liberty:full-java17-openj9-ubi
 
 # Add config, app and jdbc driver
 COPY --chown=1001:0 liberty/wlp/usr/servers/defaultServer/server.xml /config/server.xml

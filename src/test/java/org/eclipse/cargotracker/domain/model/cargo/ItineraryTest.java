@@ -1,8 +1,8 @@
 package org.eclipse.cargotracker.domain.model.cargo;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,7 +13,7 @@ import org.eclipse.cargotracker.domain.model.handling.HandlingEvent;
 import org.eclipse.cargotracker.domain.model.location.SampleLocations;
 import org.eclipse.cargotracker.domain.model.voyage.Voyage;
 import org.eclipse.cargotracker.domain.model.voyage.VoyageNumber;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ItineraryTest {
 
@@ -165,7 +165,50 @@ public class ItineraryTest {
 
   @Test
   public void testNextExpectedEvent() {
-    // TODO [TDD] Complete this test.
+    TrackingId trackingId = new TrackingId("CARGO1");
+    RouteSpecification routeSpecification =
+            new RouteSpecification(
+                    SampleLocations.SHANGHAI, SampleLocations.GOTHENBURG, LocalDate.now());
+    Cargo cargo = new Cargo(trackingId, routeSpecification);
+
+    Itinerary itinerary = new Itinerary(Arrays.asList(
+            new Leg(
+                    voyage,
+                    SampleLocations.SHANGHAI,
+                    SampleLocations.ROTTERDAM,
+                    LocalDateTime.now(),
+                    LocalDateTime.now()),
+            new Leg(
+                    voyage,
+                    SampleLocations.ROTTERDAM,
+                    SampleLocations.GOTHENBURG,
+                    LocalDateTime.now(),
+                    LocalDateTime.now())));
+
+    HandlingEvent receiveEvent = new HandlingEvent(
+            cargo,
+            LocalDateTime.now(),
+            LocalDateTime.now(),
+            HandlingEvent.Type.RECEIVE,
+            SampleLocations.SHANGHAI);
+    assertTrue(itinerary.isExpected(receiveEvent));
+
+    HandlingEvent unexpectedEvent = new HandlingEvent(
+            cargo,
+            LocalDateTime.now(),
+            LocalDateTime.now(),
+            HandlingEvent.Type.UNLOAD,
+            SampleLocations.ROTTERDAM,
+            wrongVoyage);
+    assertFalse(itinerary.isExpected(unexpectedEvent));
+
+    HandlingEvent claimEvent = new HandlingEvent(
+            cargo,
+            LocalDateTime.now(),
+            LocalDateTime.now(),
+            HandlingEvent.Type.CLAIM,
+            SampleLocations.GOTHENBURG);
+    assertTrue(itinerary.isExpected(claimEvent));
   }
 
   @Test

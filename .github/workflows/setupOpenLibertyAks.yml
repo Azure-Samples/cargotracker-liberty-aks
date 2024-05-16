@@ -22,11 +22,12 @@ env:
   refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
   refJavaee: 931ce903b85a4bf1fc79c763a92ac3666f10a1e0
   appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
-  azCliVersion: 2.40.0
+  azCliVersion: 2.60.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
   dbName: libertydb${{ github.run_id }}${{ github.run_number }}
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
+  dbServerName: libertydbs
   logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
@@ -143,22 +144,30 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "Deploy DB with name " ${{ env.dbName }}
-            az postgres server create \
+            az postgres flexible-server create \
             --resource-group ${{ env.resourceGroupForDB }} \
-            --name ${{ env.dbName }}  \
+            --name ${{ env.dbName }} \
             --location ${location} \
             --admin-user ${{ env.dbAdminUser }} \
-            --ssl-enforcement Disabled \
-            --public-network-access Enabled \
             --admin-password ${{ env.dbPassword }} \
-            --sku-name B_Gen5_1
+            --version 16 \
+            --public-access 0.0.0.0 \
+            --tier Burstable \
+            --sku-name Standard_B1ms \
+            --yes
+            az postgres flexible-server db create \
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --server-name ${{ env.dbName }} \
+              --database-name ${{ env.dbServerName }}
+            sleep 1m
             echo "Allow Access To Azure Services"
-            az postgres server firewall-rule create \
-            -g ${{ env.resourceGroupForDB }} \
-            -s ${{ env.dbName }} \
-            -n "AllowAllWindowsAzureIps" \
-            --start-ip-address "0.0.0.0" \
-            --end-ip-address "0.0.0.0"
+            az postgres flexible-server firewall-rule create \
+              -g ${{ env.resourceGroupForDB }} \
+              -n ${{ env.dbName }} \
+              -r "AllowAllWindowsAzureIps" \
+              --start-ip-address "0.0.0.0" \
+              --end-ip-address "0.0.0.0"
+            
   # Invoke the solution template, passing the necessary parameters to identify the configuration of AKS.
   deploy-openliberty-on-aks:
     needs: preflight
@@ -357,8 +366,8 @@ jobs:
           export PASSWORD=${{steps.prepare_variables.outputs.azureACRPassword}}
           export DB_SERVER_NAME=${{ env.dbName }}.postgres.database.azure.com
           export DB_PORT_NUMBER=5432
-          export DB_NAME=postgres
-          export DB_USER=${{ env.dbAdminUser }}@${{ env.dbName }}
+          export DB_NAME=${{env.dbServerName}}
+          export DB_USER=${{ env.dbAdminUser }}
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}
           export APPLICATIONINSIGHTS_CONNECTION_STRING=${{steps.prepare_variables.outputs.appInsightsConnectionString}}

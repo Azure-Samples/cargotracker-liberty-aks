@@ -48,10 +48,10 @@ metadata:
   name: ${project.artifactId}-ingress
   namespace: default
   annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
     appgw.ingress.kubernetes.io/cookie-based-affinity: "true"
     appgw.ingress.kubernetes.io/use-private-ip: "false"
 spec:
+  ingressClassName: azure-application-gateway
   rules:
     - http:
         paths:

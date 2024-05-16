@@ -93,11 +93,12 @@ Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the followi
 export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
 export RESOURCE_GROUP_NAME="abc1110rg" # customize this
 export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
+export DB_NAME="libertydb" # PostgreSQL database name
 export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
 export DB_PORT_NUMBER=5432
 export DB_NAME=postgres
-export DB_USER=liberty@${DB_RESOURCE_NAME}
+export DB_USER=liberty
 export NAMESPACE=default
 ```
 
@@ -240,24 +241,31 @@ If you are using Azure Cloud Shell, and the terminal is disconnected, run `sourc
 
 ### Create an Azure Database for PostgreSQL instance
 
-While the previous command runs, use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
+While the previous command runs, use `az postgres flexible-server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
 
 ```bash
-az postgres server create \
+az postgres flexible-server create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --name ${DB_RESOURCE_NAME}  \
+  --name ${DB_RESOURCE_NAME} \
   --location eastus \
-  --admin-user liberty \
-  --ssl-enforcement Disabled \
-  --public-network-access Enabled \
+  --admin-user ${DB_USER} \
   --admin-password ${DB_PASSWORD} \
-  --sku-name B_Gen5_1
+  --version 16 \
+  --public-access 0.0.0.0 \
+  --tier Burstable \
+  --sku-name Standard_B1ms \
+  --yes
 
-  echo "Allow Access To Azure Services"
-  az postgres server firewall-rule create \
+az postgres flexible-server db create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --server-name ${DB_RESOURCE_NAME} \
+  --database-name ${DB_NAME}
+
+echo "Allow Access to Azure Services"
+az postgres flexible-server firewall-rule create \
   -g ${RESOURCE_GROUP_NAME} \
-  -s ${DB_RESOURCE_NAME} \
-  -n "AllowAllWindowsAzureIps" \
+  -n ${DB_RESOURCE_NAME} \
+  -r "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
 ```

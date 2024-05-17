@@ -1,166 +1,102 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-    <head>
-        <title>Cargo Live Map</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:h="jakarta.faces.html"
+  xmlns:ui="jakarta.faces.facelets"
+  xmlns:p="http://primefaces.org/ui" xmlns:f="jakarta.faces.core">
+<ui:composition template="/WEB-INF/templates/common/public.xhtml">
+  <ui:define name="title">Track Cargo</ui:define>
+  <ui:define name="content">
+    <div class="ui-grid-col-2" id="leftCol"></div>
+    <div class="ui-grid-col-8" id="container" style="display: none">
+      <br />
+      <p:card>
+          <h:form id="trackingForm">
+            <h:panelGrid columns="3" cellpadding="15">
+              <p>Enter your tracking ID:</p>
+              <p:inputText id="trackingIdInput"
+                value="#{public.track.trackingId}" required="true"
+                placeholder="XYZ789" title="Valid tracking ID" />
+              <p:commandButton value="Track!"
+                  action="#{public.track.onTrackById()}" update="cargo-status" />
+            </h:panelGrid>
+          </h:form>
+      </p:card>
+      <div class="ui-g-12">
+        <p:separator />
+      </div>
+      <h:panelGroup id="cargo-status">
+        <div class="ui-g-12">
+          <h:panelGroup rendered="#{not empty public.track.cargo}">
+            <div id="result">
+              <p>
+                Cargo <strong>#{public.track.cargo.trackingId}</strong> is
+                currently <strong>#{public.track.cargo.statusText}</strong>
+              </p>
 
-        <link rel="stylesheet" href="#{resource['/css/dd.css']}" />
+              <p>
+                Estimated time of arrival in <strong>#{public.track.cargo.destinationName}</strong>:
+                #{public.track.cargo.eta}
+              </p>
+              <ui:fragment
+                rendered="#{not empty public.track.cargo.nextExpectedActivity}">
+                <p>#{public.track.cargo.nextExpectedActivity}</p>
+              </ui:fragment>
 
-        <link rel="stylesheet"
-              href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" />
-
-        <link rel="stylesheet" href="#{resource['/leaflet/leaflet.css']}" />
-        <script src="#{resource['/leaflet/leaflet.js']}" />
-
-        <script type="text/javascript">
-	    //<![CDATA[
-	    function getUrlParameter(name) {
-	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-	    var results = regex.exec(location.search);
-	    return results === null ? '' : decodeURIComponent(results[1].replace(
-	    /\+/g, ' '));
-	    };
-	    //]]>
-        </script>
-        <script type="text/javascript">
-	    //  load the icons for the map
-	    const greenIcon = new L.Icon(
-	    {
-	    iconUrl : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-	    shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	    iconSize : [ 25, 41 ],
-	    iconAnchor : [ 12, 41 ],
-	    popupAnchor : [ 1, -34 ],
-	    shadowSize : [ 41, 41 ]
-	    });
-
-	    const greyIcon = new L.Icon(
-	    {
-	    iconUrl : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-	    shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	    iconSize : [ 25, 41 ],
-	    iconAnchor : [ 12, 41 ],
-	    popupAnchor : [ 1, -34 ],
-	    shadowSize : [ 41, 41 ]
-	    });
-
-	    const redIcon = new L.Icon(
-	    {
-	    iconUrl : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-	    shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	    iconSize : [ 25, 41 ],
-	    iconAnchor : [ 12, 41 ],
-	    popupAnchor : [ 1, -34 ],
-	    shadowSize : [ 41, 41 ]
-	    });
-
-	    const blackIcon = new L.Icon(
-	    {
-	    iconUrl : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
-	    shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	    iconSize : [ 25, 41 ],
-	    iconAnchor : [ 12, 41 ],
-	    popupAnchor : [ 1, -34 ],
-	    shadowSize : [ 41, 41 ]
-	    });
-
-	    const goldIcon = new L.Icon(
-	    {
-	    iconUrl : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
-	    shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	    iconSize : [ 25, 41 ],
-	    iconAnchor : [ 12, 41 ],
-	    popupAnchor : [ 1, -34 ],
-	    shadowSize : [ 41, 41 ]
-	    });
-
-	    const colorCodes = {
-	    "NOT_ROUTED" : greyIcon,
-	    "NOT_RECEIVED" : goldIcon,
-	    "IN_PORT" : greenIcon,
-	    "ONBOARD_CARRIER" : greenIcon,
-	    "MISDIRECTED" : redIcon,
-	    "AT_DESTINATION" : blackIcon,
-	    "CLAIMED" : blackIcon,
-	    "UNKNOWN" : redIcon
-	    };
-        </script>
-    </head>
-    <body id="iframe-box">
-        <div>
-            <div id="map"
-                 style="height: 600px; border: #FFF; border-style: solid; border-width: 8px;">
+              <p:panel rendered="#{public.track.cargo.misdirected}">
+                <p>
+                  <i class="fa fa-exclamation-triangle" style="color: #9b2332"></i>
+                  Cargo is misdirected.
+                </p>
+              </p:panel>
             </div>
+          </h:panelGroup>
+
+          <p:outputLabel
+            value="Cargo with tracking ID #{public.track.trackingId} not found."
+            rendered="#{empty public.track.cargo and not empty public.track.trackingId}" />
         </div>
 
-        <script type="text/javascript">
-	    window.onload = function init() {
-	    var cargo = JSON.parse(getUrlParameter('cargo'));
+        <h:panelGroup rendered="#{not empty public.track.cargo}">
+          <div class="ui-g ui-g-12">
+            <div class="ui-g-3">
+              <p:outputLabel value="Handling History"
+                style="font-size: 2em; font-weight: bold" />
+            </div>
 
-	    const originCoordinates = {
-	    position : {
-	    lon : cargo.originCoordinates.longitude
-	    + (Math.floor((Math.random() * 3) - 3)),
-	    lat : cargo.originCoordinates.latitude
-	    + (Math.floor((Math.random() * 3) - 3))
-	    },
-	    style : blackIcon
-	    };
+            <div class="ui-g-12">
+              <p:separator />
+              <br /> <br />
+            </div>
 
-	    const destinationCoordinates = {
-	    position : {
-	    lon : cargo.destinationCoordinates.longitude
-	    + (Math.floor((Math.random() * 3) - 3)),
-	    lat : cargo.destinationCoordinates.latitude
-	    + (Math.floor((Math.random() * 3) - 3))
-	    },
-	    style : blackIcon
-	    };
+            <div class="ui-g-12">
+              <ui:repeat value="#{public.track.cargo.events}" var="leg">
+                <div>
+                  <ui:fragment rendered="#{leg.expected}">
+                                &#160;&#160;<i class="fa fa-check"
+                      style="color: green" />&#160;#{leg.description}, at #{leg.time}
+                            </ui:fragment>
+                  <ui:fragment rendered="#{!leg.expected}">
+                                &#160;&#160;<em class="fa fa-flag"
+                      style="color: #9b2332" />&#160;#{leg.description}, at #{leg.time}
+                            </ui:fragment>
+                </div>
+              </ui:repeat>
 
-	    const lastKnownCoordinates = {
-	    position : {
-	    lon : cargo.lastKnownLocationCoordinates.longitude
-	    + (Math.floor((Math.random() * 3) - 3)),
-	    lat : cargo.lastKnownLocationCoordinates.latitude
-	    + (Math.floor((Math.random() * 3) - 3))
-	    },
-	    style : colorCodes[cargo.statusCode]
-	    };
+              <p:outputLabel
+                value="There are no events recorded for the tracking ID #{public.track.cargo.trackingId}."
+                rendered="#{empty public.track.cargo.events}" />
+            </div>
+          </div>
 
-	    const map = L.map('map').setView({
-	    lon : 0,
-	    lat : 0
-	    }, 2);
-
-	    // add the OpenStreetMap tiles
-	    L
-	    .tileLayer(
-	    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-	    {
-	    maxZoom : 19,
-	    attribution: '&lt;a target="_blank" href="https://openstreetmap.org/copyright">&#xA9; OpenStreetMap Contributors&lt;/a>'
-	    }).addTo(map);
-
-	    // show the scale bar on the lower left corner
-	    L.control.scale().addTo(map);
-
-	    L.marker(originCoordinates['position'], {
-	    icon : originCoordinates.style
-	    }).bindTooltip('Origin: ' + cargo.originName).addTo(map);
-
-	    L.marker(destinationCoordinates['position'], {
-	    icon : destinationCoordinates.style
-	    }).bindTooltip('Destination: ' + cargo.destinationName).addTo(
-	    map);
-
-	    L.marker(lastKnownCoordinates['position'], {
-	    icon : lastKnownCoordinates.style
-	    }).bindTooltip(
-	    'Last known location: ' + cargo.lastKnownLocationName)
-	    .addTo(map);
-	    }
-	</script>
-    </body>
+          <div id="map" class="ui-g-12">
+            <iframe class="mapFrame" width="100%" height="960"
+              src="#{request.contextPath}/public/mapFrame.xhtml?cargo=#{public.track.cargoAsJson}" />
+          </div>
+        </h:panelGroup>
+      </h:panelGroup>
+    </div>
+    <h:outputScript name="js/topbar.min.js" />
+    <h:outputScript name="js/topbar.js" />
+    <h:outputScript name="js/progress.js" />
+  </ui:define>
+</ui:composition>
 </html>

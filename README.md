@@ -271,6 +271,19 @@ az postgres flexible-server firewall-rule create \
   --end-ip-address "0.0.0.0"
 ```
 
+PENDING(edburns): Test if this is still necessary.
+
+   Once the server has been deployed, you must set this parameter.
+
+   ```bash
+
+   az postgres server configuration set --name max_prepared_transactions --resource-group ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME} --value 10
+
+   az postgres server restart --resource-group ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
+
+   az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
+```
+
 ### Create Application Insights
 
 To integrate with Application Insights, you need to have an Application Insights instance and expose metrics to it using the Java agent.

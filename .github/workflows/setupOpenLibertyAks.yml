@@ -167,6 +167,16 @@ jobs:
               -r "AllowAllWindowsAzureIps" \
               --start-ip-address "0.0.0.0" \
               --end-ip-address "0.0.0.0"
+
+            az postgres flexible-server parameter set \
+              --name max_prepared_transactions \
+              --value 10 \
+              -g ${{ env.resourceGroupForDB }} \
+              --server-name ${{ env.dbName }}
+
+            az postgres flexible-server restart \
+              -g ${{ env.resourceGroupForDB }} \
+              --name ${{ env.dbName }}
             
   # Invoke the solution template, passing the necessary parameters to identify the configuration of AKS.
   deploy-openliberty-on-aks:

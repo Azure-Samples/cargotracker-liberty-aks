@@ -6,5 +6,9 @@
     <action-listener>org.primefaces.application.DialogActionListener</action-listener>
     <navigation-handler>org.primefaces.application.DialogNavigationHandler</navigation-handler>
     <view-handler>org.primefaces.application.DialogViewHandler</view-handler>
+    <resource-bundle>
+      <base-name>org.eclipse.cargotracker.messages</base-name>
+      <var>messages</var>
+     </resource-bundle>
   </application>
 </faces-config>

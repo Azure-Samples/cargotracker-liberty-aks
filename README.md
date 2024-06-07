@@ -70,7 +70,7 @@ Clone the sample app repository to your development environment.
 
 ```bash
 mkdir cargotracker-liberty-aks
-DIR="$PWD/cargotracker-liberty-aks"
+export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
@@ -84,29 +84,30 @@ If you see a message about `detached HEAD state`, it is safe to ignore. It just 
 Create a bash script with environment variables by making a copy of the supplied template. Customize the variables indicated.
 
 ```bash
-cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the following information. You can keep them with default values.
+Open `${DIR}/setup-env-variables.sh` and enter the following information. You can keep them with default values.
 
 ```bash
-export APPINSIGHTS_NAME="appinsights$(date +%s)"
-export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
-export RESOURCE_GROUP_NAME="abc1110rg" # customize this
-export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
-export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
+export RESOURCE_GROUP_NAME="ejb010520ct" # customize this. Must be unique within your subscription
+
+export APPINSIGHTS_NAME="${RESOURCE_GROUP_NAME}appinsights"
+export DB_NAME="libertydb" # PostgreSQL database name
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
 export DB_PORT_NUMBER=5432
-export DB_NAME="libertydb" # PostgreSQL database name
+export DB_RESOURCE_NAME="${RESOURCE_GROUP_NAME}db"
+export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
 export DB_USER=liberty
+export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
 export NAMESPACE=default
-export WORKSPACE_NAME="loga$(date +%s)"
+export WORKSPACE_NAME="${RESOURCE_GROUP_NAME}ws"
 ```
 
 Then, set the environment:
 
 ```bash
-source ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+source ${DIR}/setup-env-variables.sh
 ```
 
 ### Clone Liberty on AKS Bicep templates

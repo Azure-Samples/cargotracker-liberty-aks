@@ -1,11 +1,12 @@
-export APPINSIGHTS_NAME="appinsights$(date +%s)"
-export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
-export RESOURCE_GROUP_NAME="abc1110rg" # customize this
-export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
-export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
+export RESOURCE_GROUP_NAME="abc1110rg" # customize this. Must be unique within your subscription
+
+export APPINSIGHTS_NAME="${RESOURCE_GROUP_NAME}appinsights"
+export DB_NAME="libertydb" # PostgreSQL database name
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
 export DB_PORT_NUMBER=5432
-export DB_NAME="libertydb" # PostgreSQL database name
+export DB_RESOURCE_NAME="${RESOURCE_GROUP_NAME}db"
+export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
 export DB_USER=liberty
+export LIBERTY_AKS_REPO_REF="e526fd1f313af802a888eb43c18d7e271c35be7c" # WASdev/azure.liberty.aks
 export NAMESPACE=default
-export WORKSPACE_NAME="loga$(date +%s)"
+export WORKSPACE_NAME="${RESOURCE_GROUP_NAME}ws"

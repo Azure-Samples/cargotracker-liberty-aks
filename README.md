@@ -119,6 +119,25 @@ git checkout ${LIBERTY_AKS_REPO_REF}
 cd ${DIR}
 ```
 
+### Build Liberty on AKS Bicep templates
+
+```bash
+cd ${DIR}
+curl -L -o ${DIR}/azure-javaee-iaas-parent-1.0.22.pom  \
+     https://github.com/azure-javaee/azure-javaee-iaas/releases/download/azure-javaee-iaas-parent-1.0.22/azure-javaee-iaas-parent-1.0.22.pom
+
+
+mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-1.0.22.pom \
+                         -DgroupId=com.microsoft.azure.iaas \
+                         -DartifactId=azure-javaee-iaas-parent \
+                         -Dversion=1.0.22 \
+                         -Dpackaging=pom
+
+cd ${DIR}/azure.liberty.aks
+mvn clean package -DskipTests
+
+```
+
 ### Sign in to Azure
 
 If you haven't already, sign into your Azure subscription by using the `az login` command and follow the on-screen directions.
@@ -204,7 +223,7 @@ EOF
 
 ### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
 
-Invoke the Bicep template in `${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep` to deploy Open Liberty Operator on AKS.
+Invoke the Bicep template in `${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep` to deploy Open Liberty Operator on AKS.
 
 Run the following command to validate the parameter file.
 
@@ -213,7 +232,7 @@ az deployment group validate \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep
 ```
 
 The command should be completed without error. If there is, you must resolve it before moving on. Verify the exit status from the command by examining shell's exit status. In POSIX environments, this is `$?`.
@@ -231,7 +250,7 @@ az deployment group create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep
 ```
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.

@@ -123,7 +123,7 @@ cd ${DIR}
 
 ```bash
 cd ${DIR}/azure.liberty.aks
-VERSION=$( mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
 
 cd ${DIR}
 curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \

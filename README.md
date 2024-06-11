@@ -122,15 +122,18 @@ cd ${DIR}
 ### Build Liberty on AKS Bicep templates
 
 ```bash
+cd ${DIR}/azure.liberty.aks
+VERSION=$( mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+
 cd ${DIR}
-curl -L -o ${DIR}/azure-javaee-iaas-parent-1.0.22.pom  \
-     https://github.com/azure-javaee/azure-javaee-iaas/releases/download/azure-javaee-iaas-parent-1.0.22/azure-javaee-iaas-parent-1.0.22.pom
+curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \
+     https://github.com/azure-javaee/azure-javaee-iaas/releases/download/azure-javaee-iaas-parent-${VERSION}/azure-javaee-iaas-parent-${VERSION}.pom
 
 
-mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-1.0.22.pom \
+mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-${VERSION}.pom \
                          -DgroupId=com.microsoft.azure.iaas \
                          -DartifactId=azure-javaee-iaas-parent \
-                         -Dversion=1.0.22 \
+                         -Dversion=${VERSION} \
                          -Dpackaging=pom
 
 cd ${DIR}/azure.liberty.aks

@@ -639,8 +639,8 @@ The workflow uses the source code behind the [official Azure offer for running L
 This job is to build Liberty on AKS template into a ZIP file containing the ARM template to invoke.
 
 * Set up environment to build the Liberty on AKS templates
-  + Set up JDK 1.8
-  + Set up bicep 0.11.1
+  + Set up JDK 17
+  + Set up bicep 0.29.47
 
 * Download dependencies
   + Checkout azure-javaee-iaas, this is a precondition necessary to build Liberty on AKS templates. For more details, see [Azure Marketplace Azure Application (formerly known as Solution Template) Helpers](https://github.com/Azure/azure-javaee-iaas).

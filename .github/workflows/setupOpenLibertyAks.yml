@@ -68,7 +68,7 @@ jobs:
           echo "disambiguationSuffix=${disambiguationSuffix}" >> $GITHUB_OUTPUT
       - name: Set up bicep
         run: |
-          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.11.1/bicep-linux-x64
+          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.29.47/bicep-linux-x64
           chmod +x ./bicep
           sudo mv ./bicep /usr/local/bin/bicep
           bicep --version

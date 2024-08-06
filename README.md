@@ -47,16 +47,15 @@ In this sample, you will:
 
 ## Prerequisites
 
-- [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/). This sample was tested with:
-  - JDK: openjdk version `11.0.18 2023-01-17 LTS`.
-  - GIT: git version `2.33.6`.
-  - Kubernetes CLI version as following:
+- JDK 17
+- GIT: git version `2.33.6`.
+- Kubernetes CLI version as following:
 
-     ```bash
-     Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
-     Kustomize Version: v4.5.7
-     ```
-  - Maven: Apache Maven `3.8.7` (NON_CANONICAL).
+   ```bash
+   Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
+   Kustomize Version: v4.5.7
+   ```
+- Maven: Apache Maven `3.8.7` (NON_CANONICAL).
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
@@ -87,22 +86,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/setup-env-variables.sh` and enter the following information. You can keep them with default values.
-
-```bash
-export RESOURCE_GROUP_NAME="ejb010520ct" # customize this. Must be unique within your subscription
-
-export APPINSIGHTS_NAME="${RESOURCE_GROUP_NAME}appinsights"
-export DB_NAME="libertydb" # PostgreSQL database name
-export DB_PASSWORD="Secret123456" # PostgreSQL database password
-export DB_PORT_NUMBER=5432
-export DB_RESOURCE_NAME="${RESOURCE_GROUP_NAME}db"
-export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
-export DB_USER=liberty
-export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
-export NAMESPACE=default
-export WORKSPACE_NAME="${RESOURCE_GROUP_NAME}ws"
-```
+Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and customize the values as indicated.
 
 Then, set the environment:
 
@@ -122,6 +106,30 @@ git checkout ${LIBERTY_AKS_REPO_REF}
 cd ${DIR}
 ```
 
+If you see a warning about being in 'detached HEAD' state, it is safe to ignore.
+
+### Build Liberty on AKS Bicep templates
+
+```bash
+cd ${DIR}/azure.liberty.aks
+export VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+
+cd ${DIR}
+curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \
+     https://github.com/azure-javaee/azure-javaee-iaas/releases/download/azure-javaee-iaas-parent-${VERSION}/azure-javaee-iaas-parent-${VERSION}.pom
+
+
+mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-${VERSION}.pom \
+                         -DgroupId=com.microsoft.azure.iaas \
+                         -DartifactId=azure-javaee-iaas-parent \
+                         -Dversion=${VERSION} \
+                         -Dpackaging=pom
+
+cd ${DIR}/azure.liberty.aks
+mvn clean package -DskipTests
+
+```
+
 ### Sign in to Azure
 
 If you haven't already, sign into your Azure subscription by using the `az login` command and follow the on-screen directions.
@@ -139,7 +147,7 @@ Create a resource group with `az group create`. Resource group names must be glo
 ```bash
 az group create \
     --name ${RESOURCE_GROUP_NAME} \
-    --location eastus
+    --location ${LOCATION}
 ```
 
 ### Prepare deployment parameters
@@ -216,7 +224,7 @@ az deployment group validate \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/bicep/mainTemplate.bicep
 ```
 
 The command should be completed without error. If there is, you must resolve it before moving on. Verify the exit status from the command by examining shell's exit status. In POSIX environments, this is `$?`.
@@ -234,7 +242,7 @@ az deployment group create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/bicep/mainTemplate.bicep
 ```
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
@@ -298,14 +306,14 @@ az monitor log-analytics workspace create \
   --workspace-name ${WORKSPACE_NAME} \
   --location eastus
 
-WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
+export WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
 ```
 
 
 This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
@@ -360,8 +368,8 @@ The following steps are to build a container image which will be deployed to AKS
 The image tag is constructed with `${project.artifactId}:${project.version}`. Run the following command to obtain their values.
 
 ```bash
-IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
-IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
+export IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
+export IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
 ```
 
 Run `ac acr build` command to build the container image.
@@ -374,7 +382,7 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
 ```
@@ -405,13 +413,13 @@ You can open Cargo Tracker in your web browser. Use the following commands to ob
 
 
 ```bash
-GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
+export GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
 
-GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
+export GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
 
-CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
+export CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
 
 echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 ```
@@ -451,7 +459,7 @@ The API requires the following parameters:
 You can run the following `curl` command to load onto voyage 0200T in New York for trackingId of `ABC123`:
 
 ```bash
-DATE=$(date +'%m/%d/%Y %I:%M %p')
+export DATE=$(date +'%m/%d/%Y %I:%M %p')
 cat <<EOF >data.json
 {
   "completionTime": "${DATE}",
@@ -468,7 +476,7 @@ curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER
 You can use Application Insights to detect failures. Run the following `curl` command to cause a failed call. The REST API fails at incorrect datetime format.
 
 ```bash
-DATE=$(date +'%m/%d/%Y %H:%M:%S')
+export DATE=$(date +'%m/%d/%Y %H:%M:%S')
 cat <<EOF >data.json
 {
   "completionTime": "${DATE}",

@@ -33,7 +33,7 @@ env:
   replicas: 3
   resourceGroupForDB: liberty-db-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
-  aksRepoBranchName: 5c3f60fffdfd1219036bac2e50c51a53a97f21e3
+  aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c
 
 jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.

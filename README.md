@@ -86,7 +86,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and customize the values as indicated.
+Open `${DIR}/setup-env-variables.sh` and customize the values as indicated.
 
 Then, set the environment:
 
@@ -247,24 +247,19 @@ az deployment group create \
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
 
-If you are using Azure Cloud Shell, and the terminal is disconnected, run `source <path-to>/cargotracker/.scripts/setup-env-variables.sh` to set the variables.
-
 ### Create an Azure Database for PostgreSQL instance
 
 While the previous command runs, use `az postgres flexible-server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
 
 ```bash
 az postgres flexible-server create \
-  --resource-group ${RESOURCE_GROUP_NAME} \
-  --name ${DB_RESOURCE_NAME} \
-  --location eastus \
-  --admin-user ${DB_USER} \
-  --admin-password ${DB_PASSWORD} \
-  --version 16 \
-  --public-access 0.0.0.0 \
-  --tier Burstable \
-  --sku-name Standard_B1ms \
-  --yes
+   --resource-group ${RESOURCE_GROUP_NAME} \
+   --name ${DB_RESOURCE_NAME} \
+   --location ${LOCATION} \
+   --admin-user ${DB_USER} \
+   --admin-password ${DB_PASSWORD} \
+   --version 15 --public-access 0.0.0.0 
+   --tier Burstable --sku-name Standard_B1ms --yes
 
 az postgres flexible-server db create \
   --resource-group ${RESOURCE_GROUP_NAME} \
@@ -304,7 +299,7 @@ Create a Log Analytics Workspace.
 az monitor log-analytics workspace create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --workspace-name ${WORKSPACE_NAME} \
-  --location eastus
+  --location ${LOCATION}
 
 export WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
 ```
@@ -328,7 +323,7 @@ Next, provision Application Insights.
 az monitor app-insights component create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --app ${APPINSIGHTS_NAME} \
-  --location eastus \
+  --location ${LOCATION} \
   --workspace ${WORKSPACE_ID}
 ```
 
@@ -355,7 +350,7 @@ export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query '[0].name' 
 export LOGIN_SERVER=$(az acr show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
 ```
 
-Now, it's ready to build Cargo Tracker.
+Now, you're ready to build Cargo Tracker.
 
 ```bash
 mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
@@ -470,7 +465,7 @@ cat <<EOF >data.json
 }
 EOF
 
-curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
+curl --verbose -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
 ```
 
 You can use Application Insights to detect failures. Run the following `curl` command to cause a failed call. The REST API fails at incorrect datetime format.
@@ -516,7 +511,7 @@ Select the first operation with response code 204. Select the **View all** butto
 
 ![Cargo Tracker traces and events in Application Insights](media/app-insights-cargo-reports-traces.png)
 
-Navigate to the `Failures/Exceptions` blade - you can see a collection of exceptions:
+Navigate to the `Failures` blade - you can see a collection of exceptions:
 
 ![Cargo Tracker Failures in Application Insights](media/app-insights-failures.png)
 
@@ -533,17 +528,29 @@ Navigate to the Live Metrics blade - you can see live metrics on screen with low
 Get the pod name of each server in your terminal.
 
 ```bash
-kubectl get pod
+kubectl -n open-liberty get pod 
 ```
 
 You will get output like the following content. The first three pods are running Open Liberty servers. The last one is running Open Liberty Operator.
 
 ```bash
 NAME                                      READY   STATUS    RESTARTS   AGE
-cargo-tracker-cluster-7c6df94fc7-5rpjd    1/1     Running   0          2m50s
-cargo-tracker-cluster-7c6df94fc7-hrvln    1/1     Running   0          2m50s
-cargo-tracker-cluster-7c6df94fc7-pr6zj    1/1     Running   0          2m50s
 olo-controller-manager-77cc59655b-2r5qg   1/1     Running   0          2d5h
+```
+
+Get the pod name of each server in your terminal.
+
+```bash
+kubectl get pod 
+```
+
+You will get output like the following content. The first three pods are running Open Liberty servers. The last one is running Open Liberty Operator.
+
+```bash
+NAME                                      READY   STATUS    RESTARTS   AGE
+cargo-tracker-cluster-7c8d78c459-6s4mh   1/1     Running   0          19m
+cargo-tracker-cluster-7c8d78c459-j6q8l   1/1     Running   0          19m
+cargo-tracker-cluster-7c8d78c459-lczj5   1/1     Running   0          20m
 ```
 
 Open the Log Analytics that created in previous steps.
@@ -552,7 +559,7 @@ In the Log Analytics landing page, select `Logs` blade and run any of the sample
 
 Make sure the quary scope is your aks instance.
 
-Type and run the following Kusto query to see operator logs, replace the `ContainerHostname` with the operator pod name displayed above.
+Type and run the following Kusto query to see operator logs, replace the `PodName` with the operator pod name displayed above.
 
 ```sql
 ContainerLogV2 
@@ -562,7 +569,7 @@ ContainerLogV2
 | limit 500
 ```
 
-Type and run the following Kusto query to see Open Liberty server logs, replace the `ContainerHostname` with one of Open Liberty server name displayed above.
+Type and run the following Kusto query to see Open Liberty server logs, replace the `PodName` with one of Open Liberty server name displayed above.
 
 ```sql
 ContainerLogV2 
@@ -712,7 +719,11 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality
 
-1. On the main page, select **Public Tracking Interface** in new window. 
+1. On the main page, inspect the date timestamp, it should reflect today's date. For example, **3.2 2024-08-06 17:48:08**.
+
+1. On the main page, select **Administration**.
+
+1. In the left menu, open **Track** in a new window.
 
    1. Enter **ABC123** and select **Track!**
 
@@ -722,7 +733,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
    1. Mouse over the pins and find the one for **ABC123**.  Take note of the information in the hover window.
 
-1. On the main page, select **Mobile Event Logger**.  This opens up in a new, small, window.
+1. On the main page, select **Event Logging Interface**.  This opens up in a new, small, window.
 
 1. Drop down the menu and select **ABC123**.  Select **Next**.
 

@@ -72,13 +72,6 @@ jobs:
           chmod +x ./bicep
           sudo mv ./bicep /usr/local/bin/bicep
           bicep --version
-      # This is a precondition necessary to generate the bicep file to deploy Liberty on AKS.
-      - name: Checkout azure-javaee-iaas
-        uses: actions/checkout@v2
-        with:
-          repository: Azure/azure-javaee-iaas
-          path: azure-javaee-iaas
-          ref: ${{ env.refJavaee }}
       - name: Checkout arm-ttk
         uses: actions/checkout@v2
         with:
@@ -96,10 +89,13 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 17
-      - name: Build azure-javaee-iaas
-        run: mvn clean install --file azure-javaee-iaas/pom.xml
+          server-username: PACKAGES_ACCESS_USERNAME
+          server-password: PACKAGES_ACCESS_TOKEN
       # Generate the Liberty on AKS bicep template so it can be invoked later. The bicep template is enclosed in a zip file
       - name: Build and test ${{ env.aksRepoUserName }}/azure.liberty.aks
+        env:
+          PACKAGES_ACCESS_USERNAME: github
+          PACKAGES_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd azure.liberty.aks
           mvn -Pbicep -Ddev -Passembly -Ptemplate-validation-tests clean install

@@ -192,7 +192,7 @@ jobs:
       - name: Get version information from azure.liberty.aks/pom.xml
         id: version
         run: |
-          version=$(awk '/<version>[^<]+<\/version>/{gsub(/<version>|<\/version>/,"",$1);print $1;exit;}' azure.liberty.aks/pom.xml)
+          version=$(mvn -q -Dexec.executable=echo -Dexec.args='${version.azure.liberty.aks}' --file azure.liberty.aks/pom.xml  --non-recursive exec:exec)
           echo "version=${version}" >> $GITHUB_ENV
       - name: Output artifact name for Download action
         id: artifact_file

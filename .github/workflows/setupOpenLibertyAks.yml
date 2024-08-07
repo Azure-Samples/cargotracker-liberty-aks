@@ -9,7 +9,7 @@ on:
       region:
         description: "Azure region for resources"
         required: true
-        default: eastus
+        default: westus
       deleteResource:
         description: "True to delete all the Azure resources after the deployments. False to keep Azure resources."
         default: "true"

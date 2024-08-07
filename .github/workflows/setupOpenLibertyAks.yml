@@ -102,7 +102,7 @@ jobs:
       - name: Generate artifact file name and path
         id: artifact_file
         run: |
-          version=$(awk '/<version>[^<]+<\/version>/{gsub(/<version>|<\/version>/,"",$1);print $1;exit;}' azure.liberty.aks/pom.xml)
+          version=$(mvn -q -Dexec.executable=echo -Dexec.args='${version.azure.liberty.aks}' --file azure.liberty.aks/pom.xml  --non-recursive exec:exec)
           artifactName=azure.liberty.aks-$version-arm-assembly
           unzip azure.liberty.aks/target/$artifactName.zip -d azure.liberty.aks/target/$artifactName
           echo "artifactName=${artifactName}" >> $GITHUB_OUTPUT

@@ -201,7 +201,6 @@ jobs:
           PACKAGES_ACCESS_USERNAME: github
           PACKAGES_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd azure.liberty.aks
           version=$(mvn -q -Dexec.executable=echo -Dexec.args='${version.azure.liberty.aks}' --file azure.liberty.aks/pom.xml  --non-recursive exec:exec)
           echo "version=${version}" >> $GITHUB_ENV
       - name: Output artifact name for Download action

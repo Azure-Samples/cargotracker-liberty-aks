@@ -73,7 +73,7 @@ export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
-git checkout 20240408
+git checkout 20240808
 ```
 
 If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.

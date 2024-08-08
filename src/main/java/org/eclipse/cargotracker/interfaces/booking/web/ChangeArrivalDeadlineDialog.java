@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.enterprise.context.SessionScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.inject.Named;
 import org.primefaces.PrimeFaces;
 import org.primefaces.event.SelectEvent;
 
@@ -21,8 +21,8 @@ public class ChangeArrivalDeadlineDialog implements Serializable {
     options.put("modal", true);
     options.put("draggable", true);
     options.put("resizable", false);
-    options.put("contentWidth", 410);
-    options.put("contentHeight", 280);
+    options.put("contentWidth", 460);
+    options.put("contentHeight", 440);
 
     Map<String, List<String>> params = new HashMap<>();
     List<String> values = new ArrayList<>();

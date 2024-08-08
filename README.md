@@ -47,16 +47,15 @@ In this sample, you will:
 
 ## Prerequisites
 
-- [Azure Cloud Shell](https://ms.portal.azure.com/#cloudshell/). This sample was tested with:
-  - JDK: openjdk version `11.0.18 2023-01-17 LTS`.
-  - GIT: git version `2.33.6`.
-  - Kubernetes CLI version as following:
+- JDK 17
+- GIT: git version `2.33.6`.
+- Kubernetes CLI version as following:
 
-     ```bash
-     Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
-     Kustomize Version: v4.5.7
-     ```
-  - Maven: Apache Maven `3.8.7` (NON_CANONICAL).
+   ```bash
+   Client Version: version.Info{Major:"1", Minor:"26", GitVersion:"v1.26.3", GitCommit:"9e644106593f3f4aa98f8a84b23db5fa378900bd", GitTreeState:"clean", BuildDate:"2023-03-15T13:40:17Z", GoVersion:"go1.19.7", Compiler:"gc", Platform:"linux/amd64"}
+   Kustomize Version: v4.5.7
+   ```
+- Maven: Apache Maven `3.8.7` (NON_CANONICAL).
 - Azure Subscription, on which you are able to create resources and assign permissions
   - View your subscription using ```az account show``` 
   - If you don't have an account, you can [create one for free](https://azure.microsoft.com/free). 
@@ -70,7 +69,7 @@ Clone the sample app repository to your development environment.
 
 ```bash
 mkdir cargotracker-liberty-aks
-DIR="$PWD/cargotracker-liberty-aks"
+export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
@@ -84,27 +83,15 @@ If you see a message about `detached HEAD state`, it is safe to ignore. It just 
 Create a bash script with environment variables by making a copy of the supplied template. Customize the variables indicated.
 
 ```bash
-cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/cargotracker/.scripts/setup-env-variables.sh` and enter the following information. You can keep them with default values.
-
-```bash
-export LIBERTY_AKS_REPO_REF="5c3f60fffdfd1219036bac2e50c51a53a97f21e3" # WASdev/azure.liberty.aks
-export RESOURCE_GROUP_NAME="abc1110rg" # customize this
-export DB_RESOURCE_NAME="libertydb1110" # PostgreSQL server name, customize this
-export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name
-export DB_PASSWORD="Secret123456" # PostgreSQL database password
-export DB_PORT_NUMBER=5432
-export DB_NAME=postgres
-export DB_USER=liberty@${DB_RESOURCE_NAME}
-export NAMESPACE=default
-```
+Open `${DIR}/setup-env-variables.sh` and customize the values as indicated.
 
 Then, set the environment:
 
 ```bash
-source ${DIR}/cargotracker/.scripts/setup-env-variables.sh
+source ${DIR}/setup-env-variables.sh
 ```
 
 ### Clone Liberty on AKS Bicep templates
@@ -119,11 +106,13 @@ git checkout ${LIBERTY_AKS_REPO_REF}
 cd ${DIR}
 ```
 
+If you see a warning about being in 'detached HEAD' state, it is safe to ignore.
+
 ### Build Liberty on AKS Bicep templates
 
 ```bash
 cd ${DIR}/azure.liberty.aks
-VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+export VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
 
 cd ${DIR}
 curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \
@@ -158,7 +147,7 @@ Create a resource group with `az group create`. Resource group names must be glo
 ```bash
 az group create \
     --name ${RESOURCE_GROUP_NAME} \
-    --location eastus
+    --location ${LOCATION}
 ```
 
 ### Prepare deployment parameters
@@ -235,7 +224,7 @@ az deployment group validate \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/bicep/mainTemplate.bicep
 ```
 
 The command should be completed without error. If there is, you must resolve it before moving on. Verify the exit status from the command by examining shell's exit status. In POSIX environments, this is `$?`.
@@ -253,35 +242,45 @@ az deployment group create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --name liberty-on-aks \
   --parameters @parameters.json \
-  --template-file ${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep
+  --template-file ${DIR}/azure.liberty.aks/target/bicep/mainTemplate.bicep
 ```
 
 It takes more than 10 minutes to finish the deployment. The Open Liberty Operator is running in namespace `default`.
 
-If you are using Azure Cloud Shell, and the terminal is disconnected, run `source <path-to>/cargotracker/.scripts/setup-env-variables.sh` to set the variables.
-
 ### Create an Azure Database for PostgreSQL instance
 
-While the previous command runs, use `az postgres server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
+While the previous command runs, use `az postgres flexible-server create` to provision a PostgreSQL instance on Azure. The data server allows access from Azure Services.
 
 ```bash
-az postgres server create \
-  --resource-group ${RESOURCE_GROUP_NAME} \
-  --name ${DB_RESOURCE_NAME}  \
-  --location eastus \
-  --admin-user liberty \
-  --ssl-enforcement Disabled \
-  --public-network-access Enabled \
-  --admin-password ${DB_PASSWORD} \
-  --sku-name B_Gen5_1
+az postgres flexible-server create \
+   --resource-group ${RESOURCE_GROUP_NAME} \
+   --name ${DB_RESOURCE_NAME} \
+   --location ${LOCATION} \
+   --admin-user ${DB_USER} \
+   --admin-password ${DB_PASSWORD} \
+   --version 15 --public-access 0.0.0.0 
+   --tier Burstable --sku-name Standard_B1ms --yes
 
-  echo "Allow Access To Azure Services"
-  az postgres server firewall-rule create \
+az postgres flexible-server db create \
+  --resource-group ${RESOURCE_GROUP_NAME} \
+  --server-name ${DB_RESOURCE_NAME} \
+  --database-name ${DB_NAME}
+
+echo "Allow Access to Azure Services"
+az postgres flexible-server firewall-rule create \
   -g ${RESOURCE_GROUP_NAME} \
-  -s ${DB_RESOURCE_NAME} \
-  -n "AllowAllWindowsAzureIps" \
+  -n ${DB_RESOURCE_NAME} \
+  -r "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
+```
+
+Once the server has been deployed, you must set this parameter and restart the database.
+
+```bash
+az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
+
+az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
 ```
 
 ### Create Application Insights
@@ -300,16 +299,16 @@ Create a Log Analytics Workspace.
 az monitor log-analytics workspace create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --workspace-name ${WORKSPACE_NAME} \
-  --location eastus
+  --location ${LOCATION}
 
-WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
+export WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROUP_NAME} --query '[0].id' -o tsv)
 ```
 
 
 This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
@@ -324,7 +323,7 @@ Next, provision Application Insights.
 az monitor app-insights component create \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --app ${APPINSIGHTS_NAME} \
-  --location eastus \
+  --location ${LOCATION} \
   --workspace ${WORKSPACE_ID}
 ```
 
@@ -351,7 +350,7 @@ export REGISTRY_NAME=$(az acr list -g ${RESOURCE_GROUP_NAME} --query '[0].name' 
 export LOGIN_SERVER=$(az acr show -n ${REGISTRY_NAME} -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
 ```
 
-Now, it's ready to build Cargo Tracker.
+Now, you're ready to build Cargo Tracker.
 
 ```bash
 mvn clean install -PopenLibertyOnAks --file ${DIR}/cargotracker/pom.xml
@@ -364,8 +363,8 @@ The following steps are to build a container image which will be deployed to AKS
 The image tag is constructed with `${project.artifactId}:${project.version}`. Run the following command to obtain their values.
 
 ```bash
-IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
-IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
+export IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml) 
+export IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec --file ${DIR}/cargotracker/pom.xml)
 ```
 
 Run `ac acr build` command to build the container image.
@@ -378,7 +377,7 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
 ```
@@ -409,13 +408,13 @@ You can open Cargo Tracker in your web browser. Use the following commands to ob
 
 
 ```bash
-GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
+export GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
 
-GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
+export GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID} --query 'dnsSettings.fqdn' -o tsv)
 
-CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
+export CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
 
 echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 ```
@@ -455,7 +454,7 @@ The API requires the following parameters:
 You can run the following `curl` command to load onto voyage 0200T in New York for trackingId of `ABC123`:
 
 ```bash
-DATE=$(date +'%m/%d/%Y %I:%M %p')
+export DATE=$(date +'%m/%d/%Y %I:%M %p')
 cat <<EOF >data.json
 {
   "completionTime": "${DATE}",
@@ -466,13 +465,13 @@ cat <<EOF >data.json
 }
 EOF
 
-curl -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
+curl --verbose -X POST -d "@data.json" -H "Content-Type: application/json" ${CARGO_TRACKER_URL}rest/handling/reports
 ```
 
 You can use Application Insights to detect failures. Run the following `curl` command to cause a failed call. The REST API fails at incorrect datetime format.
 
 ```bash
-DATE=$(date +'%m/%d/%Y %H:%M:%S')
+export DATE=$(date +'%m/%d/%Y %H:%M:%S')
 cat <<EOF >data.json
 {
   "completionTime": "${DATE}",
@@ -512,7 +511,7 @@ Select the first operation with response code 204. Select the **View all** butto
 
 ![Cargo Tracker traces and events in Application Insights](media/app-insights-cargo-reports-traces.png)
 
-Navigate to the `Failures/Exceptions` blade - you can see a collection of exceptions:
+Navigate to the `Failures` blade - you can see a collection of exceptions:
 
 ![Cargo Tracker Failures in Application Insights](media/app-insights-failures.png)
 
@@ -529,17 +528,29 @@ Navigate to the Live Metrics blade - you can see live metrics on screen with low
 Get the pod name of each server in your terminal.
 
 ```bash
-kubectl get pod
+kubectl -n open-liberty get pod 
 ```
 
 You will get output like the following content. The first three pods are running Open Liberty servers. The last one is running Open Liberty Operator.
 
 ```bash
 NAME                                      READY   STATUS    RESTARTS   AGE
-cargo-tracker-cluster-7c6df94fc7-5rpjd    1/1     Running   0          2m50s
-cargo-tracker-cluster-7c6df94fc7-hrvln    1/1     Running   0          2m50s
-cargo-tracker-cluster-7c6df94fc7-pr6zj    1/1     Running   0          2m50s
 olo-controller-manager-77cc59655b-2r5qg   1/1     Running   0          2d5h
+```
+
+Get the pod name of each server in your terminal.
+
+```bash
+kubectl get pod 
+```
+
+You will get output like the following content. The first three pods are running Open Liberty servers. The last one is running Open Liberty Operator.
+
+```bash
+NAME                                      READY   STATUS    RESTARTS   AGE
+cargo-tracker-cluster-7c8d78c459-6s4mh   1/1     Running   0          19m
+cargo-tracker-cluster-7c8d78c459-j6q8l   1/1     Running   0          19m
+cargo-tracker-cluster-7c8d78c459-lczj5   1/1     Running   0          20m
 ```
 
 Open the Log Analytics that created in previous steps.
@@ -548,7 +559,7 @@ In the Log Analytics landing page, select `Logs` blade and run any of the sample
 
 Make sure the quary scope is your aks instance.
 
-Type and run the following Kusto query to see operator logs, replace the `ContainerHostname` with the operator pod name displayed above.
+Type and run the following Kusto query to see operator logs, replace the `PodName` with the operator pod name displayed above.
 
 ```sql
 ContainerLogV2 
@@ -558,7 +569,7 @@ ContainerLogV2
 | limit 500
 ```
 
-Type and run the following Kusto query to see Open Liberty server logs, replace the `ContainerHostname` with one of Open Liberty server name displayed above.
+Type and run the following Kusto query to see Open Liberty server logs, replace the `PodName` with one of Open Liberty server name displayed above.
 
 ```sql
 ContainerLogV2 
@@ -628,8 +639,8 @@ The workflow uses the source code behind the [official Azure offer for running L
 This job is to build Liberty on AKS template into a ZIP file containing the ARM template to invoke.
 
 * Set up environment to build the Liberty on AKS templates
-  + Set up JDK 1.8
-  + Set up bicep 0.11.1
+  + Set up JDK 17
+  + Set up bicep 0.29.47
 
 * Download dependencies
   + Checkout azure-javaee-iaas, this is a precondition necessary to build Liberty on AKS templates. For more details, see [Azure Marketplace Azure Application (formerly known as Solution Template) Helpers](https://github.com/Azure/azure-javaee-iaas).
@@ -708,7 +719,11 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality
 
-1. On the main page, select **Public Tracking Interface** in new window. 
+1. On the main page, inspect the date timestamp, it should reflect today's date. For example, **3.2 2024-08-06 17:48:08**.
+
+1. On the main page, select **Administration**.
+
+1. In the left menu, open **Track** in a new window.
 
    1. Enter **ABC123** and select **Track!**
 
@@ -718,7 +733,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
    1. Mouse over the pins and find the one for **ABC123**.  Take note of the information in the hover window.
 
-1. On the main page, select **Mobile Event Logger**.  This opens up in a new, small, window.
+1. On the main page, select **Event Logging Interface**.  This opens up in a new, small, window.
 
 1. Drop down the menu and select **ABC123**.  Select **Next**.
 

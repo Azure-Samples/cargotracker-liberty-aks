@@ -1,16 +1,16 @@
 package org.eclipse.cargotracker.domain.model.location;
 
 import java.io.Serializable;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.NamedQuery;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.Validate;
-import javax.persistence.SequenceGenerator;
 
 /**
  * A location in our model is stops on a journey, such as cargo origin or destination, or carrier
@@ -21,85 +21,85 @@ import javax.persistence.SequenceGenerator;
 @Entity
 @NamedQuery(name = "Location.findAll", query = "Select l from Location l")
 @NamedQuery(
-    name = "Location.findByUnLocode",
-    query = "Select l from Location l where l.unLocode = :unLocode")
+            name = "Location.findByUnLocode",
+            query = "Select l from Location l where l.unLocode = :unLocode")
 public class Location implements Serializable {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  // Special Location object that marks an unknown location.
-  public static final Location UNKNOWN = new Location(new UnLocode("XXXXX"), "Unknown location");
+    // Special Location object that marks an unknown location.
+    public static final Location UNKNOWN = new Location(new UnLocode("XXXXX"), "Unknown location");
 
-  @Id 
-  @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
-  @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")
-  Long id;
+    @Id 
+    @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
+    @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")
+    Long id;
   
-  @Embedded @NotNull private UnLocode unLocode;
-  @NotEmpty private String name;
+    @Embedded @NotNull private UnLocode unLocode;
+    @NotEmpty private String name;
 
-  public Location() {
-    // Nothing to do.
-  }
-
-  /**
-   * @param unLocode UN Locode
-   * @param name Location name
-   * @throws IllegalArgumentException if the UN Locode or name is null
-   */
-  public Location(UnLocode unLocode, String name) {
-    Validate.notNull(unLocode);
-    Validate.notNull(name);
-
-    this.unLocode = unLocode;
-    this.name = name;
-  }
-
-  /** @return UN location code for this location. */
-  public UnLocode getUnLocode() {
-    return unLocode;
-  }
-
-  /** @return Actual name of this location, e.g. "Stockholm". */
-  public String getName() {
-    return name;
-  }
-
-  /**
-   * @param object to compare
-   * @return Since this is an entiy this will be true iff UN locodes are equal.
-   */
-  @Override
-  public boolean equals(Object object) {
-    if (object == null) {
-      return false;
+    public Location() {
+        // Nothing to do.
     }
 
-    if (this == object) {
-      return true;
+    /**
+     * @param unLocode UN Locode
+     * @param name Location name
+     * @throws IllegalArgumentException if the UN Locode or name is null
+     */
+    public Location(UnLocode unLocode, String name) {
+        Validate.notNull(unLocode);
+        Validate.notNull(name);
+
+        this.unLocode = unLocode;
+        this.name = name;
     }
 
-    if (!(object instanceof Location)) {
-      return false;
+    /** @return UN location code for this location. */
+    public UnLocode getUnLocode() {
+        return unLocode;
     }
 
-    Location other = (Location) object;
+    /** @return Actual name of this location, e.g. "Stockholm". */
+    public String getName() {
+        return name;
+    }
 
-    return sameIdentityAs(other);
-  }
+    /**
+     * @param object to compare
+     * @return Since this is an entiy this will be true iff UN locodes are equal.
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (object == null) {
+            return false;
+        }
 
-  public boolean sameIdentityAs(Location other) {
-    return this.unLocode.sameValueAs(other.unLocode);
-  }
+        if (this == object) {
+            return true;
+        }
 
-  /** @return Hash code of UN locode. */
-  @Override
-  public int hashCode() {
-    return unLocode.hashCode();
-  }
+        if (!(object instanceof Location)) {
+            return false;
+        }
 
-  @Override
-  public String toString() {
-    return name + " [" + unLocode + "]";
-  }
+        Location other = (Location) object;
+
+        return sameIdentityAs(other);
+    }
+
+    public boolean sameIdentityAs(Location other) {
+        return this.unLocode.sameValueAs(other.unLocode);
+    }
+
+    /** @return Hash code of UN locode. */
+    @Override
+    public int hashCode() {
+        return unLocode.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return name + " [" + unLocode + "]";
+    }
 }

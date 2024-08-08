@@ -3,16 +3,16 @@ package org.eclipse.cargotracker.domain.model.voyage;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -23,103 +23,103 @@ import org.eclipse.cargotracker.domain.model.location.Location;
 @Table(name = "carrier_movement")
 public class CarrierMovement implements Serializable {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  // Null object pattern
-  public static final CarrierMovement NONE =
-      new CarrierMovement(Location.UNKNOWN, Location.UNKNOWN, LocalDateTime.MIN, LocalDateTime.MIN);
+    // Null object pattern
+    public static final CarrierMovement NONE =
+        new CarrierMovement(Location.UNKNOWN, Location.UNKNOWN, LocalDateTime.MIN, LocalDateTime.MIN);
 
-  @Id 
-  @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
-  @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")
-  private Long id;
+    @Id 
+    @SequenceGenerator(name = "seq", sequenceName = "cargotracker_seq", allocationSize = 50)
+    @GeneratedValue (strategy = GenerationType.AUTO, generator = "seq")
+    private Long id;
 
-  @ManyToOne
-  @JoinColumn(name = "departure_location_id")
-  @NotNull
-  private Location departureLocation;
+    @ManyToOne
+    @JoinColumn(name = "departure_location_id")
+    @NotNull
+    private Location departureLocation;
 
-  @ManyToOne
-  @JoinColumn(name = "arrival_location_id")
-  @NotNull
-  private Location arrivalLocation;
+    @ManyToOne
+    @JoinColumn(name = "arrival_location_id")
+    @NotNull
+    private Location arrivalLocation;
 
-  @Column(name = "departure_time")
-  @NotNull
-  private LocalDateTime departureTime;
+    @Column(name = "departure_time")
+    @NotNull
+    private LocalDateTime departureTime;
 
-  @Column(name = "arrival_time")
-  @NotNull
-  private LocalDateTime arrivalTime;
+    @Column(name = "arrival_time")
+    @NotNull
+    private LocalDateTime arrivalTime;
 
-  public CarrierMovement() {
-    // Nothing to initialize.
-  }
-
-  public CarrierMovement(
-      Location departureLocation,
-      Location arrivalLocation,
-      LocalDateTime departureTime,
-      LocalDateTime arrivalTime) {
-    Validate.noNullElements(
-        new Object[] {departureLocation, arrivalLocation, departureTime, arrivalTime});
-
-    // This is a workaround to a Hibernate issue. when the `LocalDateTime` field is persisted into
-    // the DB, and retrieved from the DB, the values are different by nanoseconds.
-    this.departureTime = departureTime.truncatedTo(ChronoUnit.SECONDS);
-    this.arrivalTime = arrivalTime.truncatedTo(ChronoUnit.SECONDS);
-    this.departureLocation = departureLocation;
-    this.arrivalLocation = arrivalLocation;
-  }
-
-  public Location getDepartureLocation() {
-    return departureLocation;
-  }
-
-  public Location getArrivalLocation() {
-    return arrivalLocation;
-  }
-
-  public LocalDateTime getDepartureTime() {
-    return departureTime;
-  }
-
-  public LocalDateTime getArrivalTime() {
-    return arrivalTime;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public CarrierMovement() {
+        // Nothing to initialize.
     }
 
-    if (o == null || !(o instanceof CarrierMovement)) {
-      return false;
+    public CarrierMovement(
+                           Location departureLocation,
+                           Location arrivalLocation,
+                           LocalDateTime departureTime,
+                           LocalDateTime arrivalTime) {
+        Validate.noNullElements(
+                                new Object[] {departureLocation, arrivalLocation, departureTime, arrivalTime});
+
+        // This is a workaround to a Hibernate issue. when the `LocalDateTime` field is persisted into
+        // the DB, and retrieved from the DB, the values are different by nanoseconds.
+        this.departureTime = departureTime.truncatedTo(ChronoUnit.SECONDS);
+        this.arrivalTime = arrivalTime.truncatedTo(ChronoUnit.SECONDS);
+        this.departureLocation = departureLocation;
+        this.arrivalLocation = arrivalLocation;
     }
 
-    CarrierMovement that = (CarrierMovement) o;
+    public Location getDepartureLocation() {
+        return departureLocation;
+    }
 
-    return sameValueAs(that);
-  }
+    public Location getArrivalLocation() {
+        return arrivalLocation;
+    }
 
-  @Override
-  public int hashCode() {
-    return new HashCodeBuilder()
-        .append(this.departureLocation)
-        .append(this.departureTime)
-        .append(this.arrivalLocation)
-        .append(this.arrivalTime)
-        .toHashCode();
-  }
+    public LocalDateTime getDepartureTime() {
+        return departureTime;
+    }
 
-  private boolean sameValueAs(CarrierMovement other) {
-    return other != null
-        && new EqualsBuilder()
+    public LocalDateTime getArrivalTime() {
+        return arrivalTime;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || !(o instanceof CarrierMovement)) {
+            return false;
+        }
+
+        CarrierMovement that = (CarrierMovement) o;
+
+        return sameValueAs(that);
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+            .append(this.departureLocation)
+            .append(this.departureTime)
+            .append(this.arrivalLocation)
+            .append(this.arrivalTime)
+            .toHashCode();
+    }
+
+    private boolean sameValueAs(CarrierMovement other) {
+        return other != null
+            && new EqualsBuilder()
             .append(this.departureLocation, other.departureLocation)
             .append(this.departureTime, other.departureTime)
             .append(this.arrivalLocation, other.arrivalLocation)
             .append(this.arrivalTime, other.arrivalTime)
             .isEquals();
-  }
+    }
 }

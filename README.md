@@ -215,7 +215,7 @@ EOF
 
 ### Invoke Liberty on AKS Bicep template to deploy the Open Liberty Operator
 
-Invoke the Bicep template in `${DIR}/azure.liberty.aks/src/main/bicep/mainTemplate.bicep` to deploy Open Liberty Operator on AKS.
+Invoke the Bicep template in `${DIR}/azure.liberty.aks/target/main/bicep/mainTemplate.bicep` to deploy Open Liberty Operator on AKS.
 
 Run the following command to validate the parameter file.
 

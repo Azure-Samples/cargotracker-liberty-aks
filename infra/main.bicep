@@ -72,7 +72,7 @@ param enableCookieBasedAffinity bool = true
 module openLibertyOnAks './azure.liberty.aks/mainTemplate.bicep' = {
   name: 'openliberty-on-aks'
   params: {
-      _artifactsLocation: _artifactsLocation
+        _artifactsLocation: _artifactsLocation
         location: location
         createCluster: createCluster
         vmSize: vmSize

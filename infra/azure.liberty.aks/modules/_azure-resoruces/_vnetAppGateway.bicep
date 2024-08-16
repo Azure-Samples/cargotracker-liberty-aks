@@ -35,7 +35,7 @@ param vnetForApplicationGateway object = {
 }
 param vnetRGNameForApplicationGateway string
 param nameSuffix string = ''
-param guidValue string = 'vgateway'
+param guidValue string = take(replace(newGuid(), '-', ''), 6)
 
 var const_nameSuffix = empty(nameSuffix) ? guidValue : nameSuffix
 var const_subnetAddressPrefixes = vnetForApplicationGateway.subnets.gatewaySubnet.addressPrefix

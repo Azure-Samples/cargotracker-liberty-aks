@@ -24,7 +24,7 @@ param location string
 param gatewaySubnetId string = '/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/resourcegroupname/providers/Microsoft.Network/virtualNetworks/vnetname/subnets/subnetname'
 param staticPrivateFrontentIP string = '10.0.0.1'
 param usePrivateIP bool = false
-param guidValue string = newGuid()
+param guidValue string = take(replace(newGuid(), '-', ''), 6)
 
 var const_nameSuffix = empty(nameSuffix) ? guidValue : nameSuffix
 var name_appGateway = format('appgw{0}', const_nameSuffix)

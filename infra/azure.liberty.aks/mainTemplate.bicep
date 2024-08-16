@@ -163,9 +163,7 @@ param maxReplicas int = 100
 @description('The minimum required CPU core (millicore) over all the replicas for autoscaling')
 param requestCPUMillicore int = 300
 
-// TODo Updated
-// param guidValue string = take(uniqueString(subscription().id, environmentName, location), 6)
-param guidValue string = newGuid()
+param guidValue string = take(replace(newGuid(), '-', ''), 6)
 
 var const_acrRGName = (createACR ? resourceGroup().name : acrRGName)
 var const_appGatewaySSLCertOptionHaveCert = 'haveCert'

@@ -19,7 +19,7 @@
 param identity object = {}
 
 @description('Used to name the new Azure Key Vault resoure.')
-param keyVaultName string = 'kv-${uniqueString('utcValue')}'
+param keyVaultName string = 'kv-${uniqueString(utcValue)}'
 
 param location string
 

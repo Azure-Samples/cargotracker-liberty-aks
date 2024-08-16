@@ -16,8 +16,7 @@
 */
 
 param location string
-
-param name_deploymentScriptContributorRoleAssignmentName string = guid('${resourceGroup().id}Deployment Script')
+param name_deploymentScriptContributorRoleAssignmentName string = newGuid()
 
 // https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
 var const_roleDefinitionIdOfContributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'

@@ -33,7 +33,7 @@ param certificatePasswordValue string = newGuid()
 param enabledForTemplateDeployment bool = true
 
 @description('Name of the vault')
-param keyVaultName string = 'kv-${uniqueString('utcValue')}'
+param keyVaultName string = 'kv-${uniqueString(utcValue)}'
 
 param location string
 

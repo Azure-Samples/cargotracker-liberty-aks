@@ -39,3 +39,51 @@ module monitoring './shared/monitoring.bicep' = {
  scope: rg
 }
 
+@description('The base URL for artifacts')
+param _artifactsLocation string = 'https://raw.githubusercontent.com/WASdev/azure.liberty.aks/048e776e9efe2ffed8368812e198c1007ba94b2c/src/main/'
+
+@description('Whether to create a new AKS cluster')
+param createCluster bool = true
+
+@description('The VM size for AKS nodes')
+param vmSize string = 'Standard_DS2_v2'
+
+@description('The minimum node count for AKS cluster')
+param minCount int = 1
+
+@description('The maximum node count for AKS cluster')
+param maxCount int = 5
+
+@description('Whether to create Azure Container Registry')
+param createACR bool = true
+
+@description('Whether to deploy the application')
+param deployApplication bool = false
+
+@description('Whether to enable Application Gateway Ingress')
+param enableAppGWIngress bool = true
+
+@description('The certificate option for Application Gateway')
+param appGatewayCertificateOption string = 'generateCert'
+
+@description('Whether to enable cookie-based affinity')
+param enableCookieBasedAffinity bool = true
+
+module openLibertyOnAks './azure.liberty.aks/mainTemplate.bicep' = {
+  name: 'openliberty-on-aks'
+  params: {
+      _artifactsLocation: _artifactsLocation
+        location: location
+        createCluster: createCluster
+        vmSize: vmSize
+        minCount: minCount
+        maxCount: maxCount
+        createACR: createACR
+        deployApplication: deployApplication
+        enableAppGWIngress: enableAppGWIngress
+        appGatewayCertificateOption: appGatewayCertificateOption
+        enableCookieBasedAffinity: enableCookieBasedAffinity
+
+  }
+   scope: rg
+}

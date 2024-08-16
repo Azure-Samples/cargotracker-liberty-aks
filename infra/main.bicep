@@ -23,20 +23,9 @@ var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: 'rg-${environmentName}-${take(resourceToken, 5)}'
+  name: 'rg-${environmentName}-${take(resourceToken, 6)}'
   location: location
   tags: tags
-}
-
-module monitoring './shared/monitoring.bicep' = {
- name: 'monitoring'
- params: {
-   location: location
-   tags: tags
-   logAnalyticsName: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
-   applicationInsightsName: '${abbrs.insightsComponents}${resourceToken}'
- }
- scope: rg
 }
 
 @description('The base URL for artifacts')
@@ -83,7 +72,45 @@ module openLibertyOnAks './azure.liberty.aks/mainTemplate.bicep' = {
         enableAppGWIngress: enableAppGWIngress
         appGatewayCertificateOption: appGatewayCertificateOption
         enableCookieBasedAffinity: enableCookieBasedAffinity
-
   }
    scope: rg
 }
+
+module monitoring './shared/monitoring.bicep' = {
+ name: 'monitoring'
+ params: {
+   location: location
+   tags: tags
+   logAnalyticsName: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+   applicationInsightsName: '${abbrs.insightsComponents}${resourceToken}'
+ }
+ scope: rg
+}
+
+
+@description('Name of the PostgreSQL Flexible Server')
+param dbResourceName string = 'libertydb1110'
+
+@description('Server administrator login name')
+@secure()
+param administratorLogin string = 'azureroot'
+
+@description('Server administrator password')
+@secure()
+param administratorLoginPassword string
+
+@description('Name of the database')
+param databaseName string = 'libertydb1110'
+
+output LOCATION string = location
+output RESOURCE_GROUP_NAME string = rg.name
+output AZURE_RESOURCE_GROUP string = rg.name
+output WORKSPACE_ID string = monitoring.outputs.logAnalyticsWorkspaceId
+output AZURE_REGISTRY_NAME string = openLibertyOnAks.outputs.acrServerName
+output appInsightConnectionString string = monitoring.outputs.appInsightsConnectionString
+
+output DB_RESOURCE_NAME string = dbResourceName
+output DB_NAME string = databaseName
+output DB_USER_NAME string = administratorLogin
+output DB_USER_PASSWORD string = administratorLoginPassword
+output AZURE_AKS_CLUSTER_NAME string = openLibertyOnAks.outputs.clusterName

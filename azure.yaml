@@ -1,5 +1,38 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: cargotracker-liberty-aks
+name: cargotracker-liberty-aks-demo
 metadata:
-    template: azd-init@1.9.5
+    template: cargotracker-liberty-aks-demo@1.0.0
+hooks:
+    postprovision:
+        posix:
+            shell: sh
+            continueOnError: false
+            interactive: false
+            run: azd-hooks/postprovision.sh
+    predeploy: # This hook is executed before the deployment of the application to create the custom-values.yaml file
+        posix:
+            shell: sh
+            continueOnError: false
+            interactive: false
+            run: azd-hooks/predeploy.sh
+    postdeploy:
+        posix:
+            shell: sh
+            continueOnError: false
+            interactive: false
+            run: azd-hooks/postdeploy.sh
+services:
+    demo:
+        host: aks
+        k8s:
+            namespace: default
+            helm:
+                repositories:
+                    - name: cargotracker-liberty-aks
+                      url: https://backwind1233.github.io/cargotracker-liberty-aks
+                releases:
+                    - name: demo
+                      chart: cargotracker-liberty-aks/cargotracker-liberty-aks-chart
+                      version: 1.0.4
+                      values: custom-values.yaml # This file is created by the predeploy hook

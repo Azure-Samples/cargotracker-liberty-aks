@@ -4,7 +4,7 @@ azd config set alpha.aks.helm on
 # Build image and upload to ACR
 echo "AKS_NAME: $AKS_NAME"
 echo "RESOURCE_GROUP_NAME $RESOURCE_GROUP_NAME"
-ehco "WORKSPACE_ID: $WORKSPACE_ID"
+echo "WORKSPACE_ID: $WORKSPACE_ID"
 
 export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
@@ -17,16 +17,27 @@ az aks enable-addons \
 
 echo "get image name and version"
 
-IMAGE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' --non-recursive exec:exec)
-IMAGE_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+run_maven_command() {
+    mvn -q -Dexec.executable=echo -Dexec.args="$1" --non-recursive exec:exec 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n'
+}
+
+IMAGE_NAME=$(run_maven_command '${project.artifactId}')
+IMAGE_VERSION=$(run_maven_command '${project.version}')
 
 echo "build image and upload"
 
 mvn clean package -DskipTests
 cd target
-az acr build --registry ${AZURE_REGISTRY_NAME} --image ${IMAGE_NAME}:${IMAGE_VERSION} .
+echo "docker build"
+docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=Dockerfile .
+docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${ACRServer}/${IMAGE_NAME}:${IMAGE_VERSION}
+docker login -u ${ACRUserName} -p ${ACRPassword} ${ACRServer}
 
+echo "docker push to ACR Server ${ACRServer} with image name ${IMAGE_NAME} and version ${IMAGE_VERSION}"
 
+docker push ${ACRServer}/${IMAGE_NAME}:${IMAGE_VERSION}
+
+echo "provision postgresql"
 az postgres flexible-server create \
    --resource-group ${RESOURCE_GROUP_NAME} \
    --name ${DB_RESOURCE_NAME} \
@@ -52,8 +63,3 @@ az postgres flexible-server firewall-rule create \
 az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
 
 az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
-
-## echo
-echo RESOURCE_GROUP_NAME: $RESOURCE_GROUP_NAME
-echo WORKSPACE_ID: $WORKSPACE_ID
-echo AZURE_REGISTRY_NAME: $AZURE_REGISTRY_NAME

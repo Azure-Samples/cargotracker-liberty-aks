@@ -13,7 +13,7 @@ fi
 ##########################################################
 cat << EOF > custom-values.yaml
 appInsightConnectionString: ${AZURE_AKS_NAMESPACE}
-loginServer: ${AZURE_REGISTRY_NAME}.azurecr.io
+loginServer: ${AZURE_REGISTRY_NAME}
 EOF
 
 

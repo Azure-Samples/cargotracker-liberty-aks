@@ -210,7 +210,11 @@ jobs:
           echo "artifactName=${artifactName}" >> $GITHUB_ENV
           echo "artifactName=${artifactName}" >> $GITHUB_OUTPUT
       - name: Download artifact for deployment
+<<<<<<< HEAD
         uses: actions/download-artifact@v4
+=======
+        uses: actions/download-artifact@v4.1.7
+>>>>>>> 1f68135 (Bump actions/download-artifact from 1 to 4.1.7 in /.github/workflows)
         with:
           name: ${{steps.artifact_file.outputs.artifactName}}
           path: ${{steps.artifact_file.outputs.artifactName}}

@@ -39,9 +39,6 @@ param appGatewayCertificateOption string = 'generateCert'
 @description('Whether to enable cookie-based affinity')
 param enableCookieBasedAffinity bool = true
 
-@description('Name of the PostgreSQL Flexible Server')
-param dbResourceName string = 'libertydb1110'
-
 @description('Server administrator login name')
 @secure()
 param administratorLogin string = 'azureroot'
@@ -104,8 +101,8 @@ output ACRUserName string = openLibertyOnAks.outputs.acrUsername
 output AZURE_AKS_CLUSTER_NAME string = openLibertyOnAks.outputs.clusterName
 output AZURE_REGISTRY_NAME string = openLibertyOnAks.outputs.acrServerName
 output AZURE_RESOURCE_GROUP string = rg.name
-output DB_NAME string = 'libertydb-${suffix}'
-output DB_RESOURCE_NAME string = dbResourceName
+output DB_NAME string = 'liberty-db-${suffix}'
+output DB_RESOURCE_NAME string = 'liberty-server-${suffix}'
 output DB_USER_NAME string = administratorLogin
 output DB_USER_PASSWORD string = administratorLoginPassword
 output LOCATION string = location

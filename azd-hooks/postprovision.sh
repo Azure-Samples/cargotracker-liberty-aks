@@ -19,7 +19,7 @@ az postgres flexible-server create \
    --version 15 --public-access 0.0.0.0 \
    --tier Burstable  \
    --sku-name Standard_B1ms  \
-   --yes  --wait
+   --yes
 
 echo "Provision postgresql database"
 az postgres flexible-server db create \

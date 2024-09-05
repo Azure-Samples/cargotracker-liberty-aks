@@ -30,7 +30,7 @@ services:
             helm:
                 repositories:
                     - name: cargotracker-liberty-aks
-                      url: https://backwind1233.github.io/cargotracker-liberty-aks
+                      url: https://azure-javaee.github.io/cargotracker-liberty-aks
                 releases:
                     - name: demo
                       chart: cargotracker-liberty-aks/cargotracker-liberty-aks-chart

@@ -108,4 +108,4 @@ output DB_USER_PASSWORD string = administratorLoginPassword
 output LOCATION string = location
 output RESOURCE_GROUP_NAME string = rg.name
 output WORKSPACE_ID string = monitoring.outputs.logAnalyticsWorkspaceId
-output appInsightConnectionString string = monitoring.outputs.appInsightsConnectionString
+output APP_INSIGHTS_CONNECTION_STRING string = monitoring.outputs.appInsightsConnectionString

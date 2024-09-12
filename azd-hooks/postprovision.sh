@@ -1,6 +1,10 @@
 # enable Helm support
 azd config set alpha.aks.helm on
 
+HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
+HELM_REPO_NAME="cargotracker-liberty-aks"
+helm repo add ${HELM_REPO_NAME} ${HELM_REPO_URL}
+
 export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
@@ -42,7 +46,7 @@ az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOUR
 # Create the custom-values.yaml file
 ##########################################################
 cat << EOF > custom-values.yaml
-appInsightConnectionString: ${AZURE_AKS_NAMESPACE}
+appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
 loginServer: ${AZURE_REGISTRY_NAME}
 EOF
 
@@ -52,7 +56,7 @@ EOF
 cat << EOF >> custom-values.yaml
 namespace: ${AZURE_AKS_NAMESPACE}
 db:
-  ServerName: ${DB_RESOURCE_NAME}
+  ServerName: ${DB_RESOURCE_NAME}.postgres.database.azure.com
   PortNumber: 5432
   Name: ${DB_NAME}
   User: ${DB_USER_NAME}

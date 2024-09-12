@@ -16,23 +16,15 @@ hooks:
             continueOnError: false
             interactive: true
             run: azd-hooks/predeploy.sh
-    postdeploy:
-        posix:
-            shell: sh
-            continueOnError: false
-            interactive: true
-            run: azd-hooks/postdeploy.sh
+
 services:
     demo:
         host: aks
         k8s:
             namespace: default
             helm:
-                repositories:
-                    - name: cargotracker-liberty-aks
-                      url: https://azure-javaee.github.io/cargotracker-liberty-aks
                 releases:
                     - name: demo
-                      chart: cargotracker-liberty-aks/cargotracker-liberty-aks-chart
+                      chart: cargotracker-liberty-aks01/cargotracker-liberty-aks-chart
                       version: 1.0.4
                       values: custom-values.yaml # This file is created by the predeploy hook

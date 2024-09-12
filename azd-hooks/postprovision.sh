@@ -4,7 +4,17 @@ azd config set alpha.aks.helm on
 echo "Create Helm repository"
 HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
 HELM_REPO_NAME="cargotracker-liberty-aks"
+
+# Check if the repo exists before removing
+if helm repo list | grep -q "${HELM_REPO_NAME}"; then
+  helm repo remove ${HELM_REPO_NAME}
+  echo "Repo '${HELM_REPO_NAME}' removed."
+else
+  echo "Repo '${HELM_REPO_NAME}' not found in the list."
+fi
+
 helm repo add ${HELM_REPO_NAME} ${HELM_REPO_URL}
+
 
 export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 

@@ -16,6 +16,12 @@ hooks:
             continueOnError: false
             interactive: true
             run: azd-hooks/predeploy.sh
+    postdeploy: # This hook is executed after the deployment of the application to create the custom-values.yaml file
+        posix:
+            shell: sh
+            continueOnError: false
+            interactive: true
+            run: azd-hooks/postdeploy.sh
 
 services:
     demo:

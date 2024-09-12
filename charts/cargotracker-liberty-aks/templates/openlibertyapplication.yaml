@@ -5,7 +5,7 @@ metadata:
   namespace: "{{ .Values.namespace }}"
 spec:
   replicas: {{ .Values.replicaCount }}
-  applicationImage: "{{ .Values.loginServer }}/cargo-tracker:3.2-SNAPSHOT"
+  applicationImage: "{{ .Values.loginServer }}/{{ .Values.imageName }}:{{ .Values.imageTag }}"
   pullPolicy: Always
   service:
     type: ClusterIP

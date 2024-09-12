@@ -1,6 +1,7 @@
 # enable Helm support
 azd config set alpha.aks.helm on
 
+echo "Create Helm repository"
 HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
 HELM_REPO_NAME="cargotracker-liberty-aks"
 helm repo add ${HELM_REPO_NAME} ${HELM_REPO_URL}
@@ -42,12 +43,21 @@ az postgres flexible-server firewall-rule create \
 az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
 az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
 
+run_maven_command() {
+    mvn -q -Dexec.executable=echo -Dexec.args="$1" --non-recursive exec:exec 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n'
+}
+
+IMAGE_NAME=$(run_maven_command '${project.artifactId}')
+IMAGE_VERSION=$(run_maven_command '${project.version}')
+
 ##########################################################
 # Create the custom-values.yaml file
 ##########################################################
 cat << EOF > custom-values.yaml
 appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
 loginServer: ${AZURE_REGISTRY_NAME}
+imageName: ${IMAGE_NAME}
+imageTag: ${IMAGE_VERSION}
 EOF
 
 ##########################################################

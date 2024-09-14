@@ -109,7 +109,7 @@ jobs:
           echo "artifactPath=azure.liberty.aks/target/$artifactName" >> $GITHUB_OUTPUT
       # Make the contents of the zip file available for use later in the workflow.
       - name: Archive azure.liberty.aks template
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         if: success()
         with:
           name: ${{steps.artifact_file.outputs.artifactName}}
@@ -210,7 +210,7 @@ jobs:
           echo "artifactName=${artifactName}" >> $GITHUB_ENV
           echo "artifactName=${artifactName}" >> $GITHUB_OUTPUT
       - name: Download artifact for deployment
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: ${{steps.artifact_file.outputs.artifactName}}
       - uses: azure/login@v1
@@ -236,7 +236,7 @@ jobs:
                   s/#gitUserName#/${aksRepoUserName}/g" \
                   cargotracker/src/test/aks/parameters.json
       - name: Archive parameters.json
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: archivefiles
           path: cargotracker/src/test/aks/parameters.json

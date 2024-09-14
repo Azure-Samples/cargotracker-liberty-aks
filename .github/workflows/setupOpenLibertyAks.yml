@@ -55,7 +55,7 @@ jobs:
 
           location=${{ github.event.inputs.region }}
           if [[ -z "${location}" ]];then
-            location=eastus
+            location=westus
           fi
 
           disambiguationSuffix=${{ github.event.inputs.disambiguationSuffix }}

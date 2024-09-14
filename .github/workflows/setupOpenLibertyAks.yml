@@ -241,8 +241,6 @@ jobs:
         with:
           name: archivefiles
           path: cargotracker/src/test/aks/parameters.json
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       # Validate the parameters file in the context of the solution template to be invoked. This will catch some errors before taking the time to start the full deployment.
       - name: Validate Deploy of Open Liberty Server Cluster Domain offer
         id: validate-openliberty-cluster-deployment

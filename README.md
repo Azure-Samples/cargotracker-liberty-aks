@@ -24,6 +24,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
       * [Start monitoring Liberty logs in Azure Log Analytics](#start-monitoring-liberty-logs-in-azure-log-analytics)
       * [Start monitoring Cargo Tracker logs in Azure Log Analytics](#start-monitoring-cargo-tracker-logs-in-azure-log-analytics)
   * [Unit-2 - Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions)
+  * [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-AZD)
   * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
   * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
 
@@ -716,6 +717,51 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + An datetime format failure request.
 
 * Print app URL. Print the cargo tracker URL to pipeline summary page. Now you'are able to access cargo tracker with the URL from your browser.
+
+## Unit-3 - Automate deployments using AZD
+Use following steps to automate deployments using the Azure Developer CLI (azd).
+
+### Prerequisites
+1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 
+2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
+3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
+4. Maven installed. You can install Maven by following the instructions [here](https://maven.apache.org/install.html).
+5. Git installed. You can install Git by following the instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
+6. Kubernetes CLI installed. You can install the Kubernetes CLI by following the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+
+
+### How to Run
+
+1. Run the following command to authenticate with Azure using the Azure CLI.
+    ```bash
+    az login
+    ```
+
+1. Run the following command to authenticate with Azure using the Azure Developer CLI (azd). 
+    ```bash
+    azd auth login
+    ```
+
+1. Run the following command to create a new environment using the Azure Developer CLI (azd).
+
+    ```bash
+    azd env new --name cargotracker-liberty-aks-0914
+    ```
+
+1. Run the following command to provision the required Azure resources. Input the required parameters when prompted.
+
+    ```bash
+    azd provision
+    ```
+
+2. Run the following command to deploy the Cargo Tracker application to Azure Kubernetes Service (AKS) using the Azure Developer CLI (azd).
+
+    ```bash
+    azd deploy
+    ```
+
+3. Wait for the deployment to complete. Once the deployment is complete, you can access the Cargo Tracker application using the URL provided in the output.
+
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality
 

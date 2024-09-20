@@ -11,7 +11,7 @@ interface ShortestPathAi {
        Shortest path means the path with the least number of carrier movements. Given the following CSV data 
        for locations, voyages, and carrier movements, determine the shortest path from a specified `from` location 
        to a `to` location. 
-       The result should be either an empty JSON array or a list containing one path with transit edges.
+       The result should be either an empty JSON array or a json array containing one path with transit edges.
        
        ### Data Provided:
        **Locations (CSV with header):**
@@ -45,7 +45,7 @@ interface ShortestPathAi {
        - Ensure that each subsequent `fromDate` is after the previous `toDate`.
        - Each transit edge must correspond to a carrier movement from the `carrier_movement` data.
        - Just return json array result, no other output is expected. I need to use the result as json string  directly 
-         for further processing.
+         for further processing. For example, for an empty result, instead of return ```json [] ```, just return [].
        
        ### **Input Paramet
         - **From:** {{from}}

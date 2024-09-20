@@ -725,12 +725,16 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 
 2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
 3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
-4. Maven installed. You can install Maven by following the instructions [here](https://maven.apache.org/install.html).
-5. Git installed. You can install Git by following the instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
-6. Kubernetes CLI installed. You can install the Kubernetes CLI by following the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 
 ### How to Run
+
+1. Change into the directory that has cargo tracker checked out, and ensure the tag is checked out.
+
+   ```bash
+   cd ${DIR}/cargotracker
+   git checkout 20240919
+   ```
 
 1. Run the following command to authenticate with Azure using the Azure CLI.
     ```bash
@@ -742,10 +746,10 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
     azd auth login
     ```
 
-1. Run the following command to create a new environment using the Azure Developer CLI (azd).
+1. Run the following command to create a new environment using the Azure Developer CLI (azd). It's a good idea to use a disambiguation prefix for your environment name, such as your initials and todays date.
 
     ```bash
-    azd env new --name cargotracker-liberty-aks-0914
+    azd env new gzh0919-cargotracker-liberty-aks
     ```
 
 1. Run the following command to provision the required Azure resources. Input the required parameters when prompted.
@@ -753,14 +757,30 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
     ```bash
     azd provision
     ```
+    
+    For `administratorLoginPassword` enter  `Secret123456`.
+    
+    When the provisioning completes, you'll see a message similar to the following:
+    
+    ```bash
+    SUCCESS: Your application was provisioned in Azure in 27 minutes 59 seconds.
+    ```
 
-2. Run the following command to deploy the Cargo Tracker application to Azure Kubernetes Service (AKS) using the Azure Developer CLI (azd).
+2. Ensure Docker is running locally. Run the following command to deploy the Cargo Tracker application to Azure Kubernetes Service (AKS) using the Azure Developer CLI (azd).
 
     ```bash
     azd deploy
     ```
 
 3. Wait for the deployment to complete. Once the deployment is complete, you can access the Cargo Tracker application using the URL provided in the output.
+
+You can now exercise the Cargo Tracker functionality as shown in Appendix 1.
+
+### Clean up
+
+The steps in this section show you how to clean up and deallocte the resources deployed in the previous section.
+
+1. `azd down` 
 
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality

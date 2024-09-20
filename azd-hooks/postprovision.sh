@@ -88,10 +88,10 @@ AZURE_OPENAI_KEY=$(az cognitiveservices account keys list \
     --query key1 \
     --output tsv)
 
-AZURE_OPENAI_ENDPOINT=$(az cognitiveservices account keys list \
+AZURE_OPENAI_ENDPOINT=$(az cognitiveservices account show \
     --name ${AZURE_OPENAI_NAME} \
     --resource-group ${RESOURCE_GROUP_NAME} \
-    --query properties.endpoint \
+    --query "properties.endpoint" \
     --output tsv)
 
 run_maven_command() {

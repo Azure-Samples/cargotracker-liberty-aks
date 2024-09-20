@@ -6,6 +6,8 @@ replicaCount: 3
 
 namespace: "default"
 
+azureopenaikey: ""
+
 appInsightConnectionString: ""
 db:
   ServerName: ""

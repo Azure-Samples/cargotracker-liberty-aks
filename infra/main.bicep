@@ -105,6 +105,7 @@ output DB_NAME string = 'liberty-db-${suffix}'
 output DB_RESOURCE_NAME string = 'liberty-server-${suffix}'
 output DB_USER_NAME string = administratorLogin
 output DB_USER_PASSWORD string = administratorLoginPassword
+output AZURE_OPENAI_NAME string = 'openai-${suffix}'
 output LOCATION string = location
 output RESOURCE_GROUP_NAME string = rg.name
 output WORKSPACE_ID string = monitoring.outputs.logAnalyticsWorkspaceId

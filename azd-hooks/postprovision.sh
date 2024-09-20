@@ -1,10 +1,12 @@
+HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
+HELM_REPO_NAME="cargotracker-liberty-aks"
+AZURE_OPENAI_MODEL_NAME="gpt-4o"
+AZURE_OPENAI_MODEL_VERSION="20240806"
+
 # enable Helm support
 azd config set alpha.aks.helm on
 
 echo "Create Helm repository"
-HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
-HELM_REPO_NAME="cargotracker-liberty-aks"
-
 # Check if the repo exists before removing
 if helm repo list | grep -q "${HELM_REPO_NAME}"; then
   helm repo remove ${HELM_REPO_NAME}
@@ -52,6 +54,39 @@ az postgres flexible-server firewall-rule create \
 
 az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
 az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
+
+az cognitiveservices account create \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --location ${LOCATION} \
+    --kind OpenAI \
+    --custom-domain $AZURE_OPENAI_NAME \
+    --sku s0
+
+resourceId=$(az cognitiveservices account show \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --name ${AZURE_OPENAI_NAME} \
+    --query id --output tsv | tr -d '\r')
+
+az resource update \
+    --ids ${resourceId} \
+    --set properties.networkAcls="{'defaultAction':'Allow', 'ipRules':[],'virtualNetworkRules':[]}"
+
+az cognitiveservices account deployment create \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --deployment-name ${AZURE_OPENAI_MODEL_NAME} \
+    --model-name ${AZURE_OPENAI_MODEL_NAME} \
+    --model-version ${AZURE_OPENAI_MODEL_VERSION} \
+    --model-format OpenAI \
+    --sku Standard \
+    --capacity 10
+
+AZURE_OPENAI_KEY=$(az cognitiveservices account keys list \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --query key1 \
+    --output tsv)
 
 run_maven_command() {
     mvn -q -Dexec.executable=echo -Dexec.args="$1" --non-recursive exec:exec 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n'

@@ -20,14 +20,29 @@ public class ShortestPathService {
     public ShortestPathService() throws Exception{
         this.location = new String(getClass().getClassLoader().getResourceAsStream("location.csv").readAllBytes());
         this.voyage = new String(getClass().getClassLoader().getResourceAsStream("voyage.csv").readAllBytes());
-        carrier_movement = new String(getClass().getClassLoader().getResourceAsStream("carrier_movement.csv").readAllBytes());
+        this.carrier_movement = new String(getClass().getClassLoader().getResourceAsStream("carrier_movement.csv").readAllBytes());
     }
 
 
     @GET
     @Path("/shortest-path")
     @Produces(MediaType.TEXT_PLAIN)
-    public String hello(@QueryParam("from") String from,@QueryParam("to") String to) {
+    public String getShortestPath(@QueryParam("from") String from, @QueryParam("to") String to) {
         return shortestPathAi.chat(location,voyage,carrier_movement,from,to);
+    }
+
+    @GET
+    @Path("/get-location")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getLocation() {
+        return this.location;
+    }
+
+
+    @GET
+    @Path("/get-movement")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getCarrier_movement() {
+        return this.carrier_movement;
     }
 }

@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
@@ -29,6 +33,8 @@ public class GraphTraversalService {
         + "the last three must be alphanumeric (excluding 0 and 1).";
     private final Random random = new Random();
     @Inject private GraphDao dao;
+    @Inject
+    private ShortestPathService service;
 
     @GET
     @Path("/shortest-path")
@@ -49,7 +55,13 @@ public class GraphTraversalService {
                                               // TODO [DDD] Apply regular expression validation.
                                               @Size(min = 8, max = 8, message = "Deadline value must be eight characters long.")
                                               @QueryParam("deadline")
-                                              String deadline) {
+                                              String deadline) throws JsonProcessingException {
+
+        String shortestPath = service.getShortestPath(originUnLocode, destinationUnLocode);
+        if (isValidJsonUsingJackson(shortestPath)) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.readValue(shortestPath, new TypeReference<List<TransitPath>>() {});
+        }
 
         List<String> allVertices = dao.listLocations();
         allVertices.remove(originUnLocode);
@@ -96,5 +108,15 @@ public class GraphTraversalService {
         int total = allLocations.size();
         int chunk = total > 4 ? 1 + random.nextInt(5) : total;
         return allLocations.subList(0, chunk);
+    }
+
+    private boolean isValidJsonUsingJackson(String jsonString) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.readTree(jsonString);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

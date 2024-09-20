@@ -14,7 +14,8 @@ public class ShortestPathAiImpl implements ShortestPathAi {
     public ShortestPathAiImpl() {
         // Initialize OpenAI model
         OpenAiChatModel model = OpenAiChatModel.builder()
-                .apiKey(System.getenv("OPENAI_API_KEY"))
+                .apiKey(System.getenv("AZURE_OPENAI_KEY"))
+                .modelName("gpt-4o")
                 .build();
 
         // Create AI service

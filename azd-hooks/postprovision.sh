@@ -103,6 +103,8 @@ appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
 loginServer: ${AZURE_REGISTRY_NAME}
 imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
+azureopenaikey: ${AZURE_OPENAI_KEY}
+
 EOF
 
 ##########################################################

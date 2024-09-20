@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -57,7 +59,7 @@ public class GraphTraversalService {
                                               @QueryParam("deadline")
                                               String deadline) throws JsonProcessingException {
 
-        String shortestPath = service.getShortestPath(originUnLocode, destinationUnLocode);
+        String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
         if (isValidJsonUsingJackson(shortestPath)) {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.readValue(shortestPath, new TypeReference<List<TransitPath>>() {});
@@ -119,4 +121,19 @@ public class GraphTraversalService {
             return false;
         }
     }
+
+    private String getShortestPathWithTimeout(String originUnLocode, String destinationUnLocode) {
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() ->
+                service.getShortestPath(originUnLocode, destinationUnLocode)
+        );
+
+        try {
+            return future.completeOnTimeout("[]", 5, TimeUnit.SECONDS)
+                    .get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+
 }

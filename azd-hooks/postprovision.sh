@@ -88,6 +88,12 @@ AZURE_OPENAI_KEY=$(az cognitiveservices account keys list \
     --query key1 \
     --output tsv)
 
+AZURE_OPENAI_ENDPOINT=$(az cognitiveservices account keys list \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --query properties.endpoint \
+    --output tsv)
+
 run_maven_command() {
     mvn -q -Dexec.executable=echo -Dexec.args="$1" --non-recursive exec:exec 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n'
 }
@@ -103,7 +109,8 @@ appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
 loginServer: ${AZURE_REGISTRY_NAME}
 imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
-azureopenaikey: ${AZURE_OPENAI_KEY}
+azureOpenAIKey: ${AZURE_OPENAI_KEY}
+azureOpenAIEndpoint: ${AZURE_OPENAI_ENDPOINT}
 
 EOF
 

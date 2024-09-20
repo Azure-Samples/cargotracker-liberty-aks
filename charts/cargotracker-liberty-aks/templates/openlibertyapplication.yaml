@@ -45,7 +45,12 @@ spec:
       valueFrom:
         secretKeyRef:
           name: openai-secret
-          key: azureopenaikey
+          key: azureOpenAIKey
+    - name: AZURE_OPENAI_ENDPOINT
+      valueFrom:
+        secretKeyRef:
+          name: openai-secret
+          key: azureOpenAIEndpoint
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

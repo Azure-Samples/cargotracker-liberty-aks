@@ -5,4 +5,5 @@ metadata:
   namespace: "{{ .Values.namespace }}"
 type: Opaque
 stringData:
-  azureopenaikey: "{{ .Values.azureopenaikey }}"
+  azureOpenAIKey: "{{ .Values.azureOpenAIKey }}"
+  azureOpenAIEndpoint: "{{ .Values.azureOpenAIEndpoint }}"

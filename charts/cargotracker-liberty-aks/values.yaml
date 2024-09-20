@@ -6,7 +6,8 @@ replicaCount: 3
 
 namespace: "default"
 
-azureopenaikey: ""
+azureOpenAIKey: ""
+azureOpenAIEndpoint: ""
 
 appInsightConnectionString: ""
 db:

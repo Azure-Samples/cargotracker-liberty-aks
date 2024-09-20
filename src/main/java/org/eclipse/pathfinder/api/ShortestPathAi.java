@@ -44,19 +44,15 @@ interface ShortestPathAi {
        - If either the `from` or `to` location is not present in the locations data, return an empty JSON array.          
        - Ensure that each subsequent `fromDate` is after the previous `toDate`.
        - Each transit edge must correspond to a carrier movement from the `carrier_movement` data.
-       - Only return json array result, no other output is expected. 
-       
-       ### **Example Output:
-              
-       *Note: Do not include this example in your response.*
+       - Just return json array result, no other output is expected. I need to use the result as json string  directly 
+         for further processing.
        
        ### **Input Paramet
         - **From:** {{from}}
         - **To:** {{to}}
        ```
        
-       ### **Expected
-            Output:
+       ### Expected Output Example
                [
                    {
                        "transitEdges": [

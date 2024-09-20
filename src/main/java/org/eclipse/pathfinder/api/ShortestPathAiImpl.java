@@ -4,8 +4,6 @@ import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.enterprise.context.ApplicationScoped;
 
-
-// Implementation of our AI service using LangChain4j
 @ApplicationScoped
 public class ShortestPathAiImpl implements ShortestPathAi {
     private final ShortestPathAi ai;

@@ -111,6 +111,7 @@ imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
 azureOpenAIKey: ${AZURE_OPENAI_KEY}
 azureOpenAIEndpoint: ${AZURE_OPENAI_ENDPOINT}
+azureOpenAIDeploymentName: ${AZURE_OPENAI_MODEL_NAME}
 
 EOF
 

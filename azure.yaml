@@ -32,5 +32,5 @@ services:
                 releases:
                     - name: demo
                       chart: cargotracker-liberty-aks/cargotracker-liberty-aks-chart
-                      version: 1.0.7
+                      version: 1.0.8
                       values: custom-values.yaml # This file is created by the predeploy hook

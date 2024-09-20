@@ -1,8 +1,7 @@
 package org.eclipse.pathfinder.api;
 
-import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.V;
 import jakarta.enterprise.context.ApplicationScoped;
 
 
@@ -12,11 +11,12 @@ public class ShortestPathAiImpl implements ShortestPathAi {
     private final ShortestPathAi ai;
 
     public ShortestPathAiImpl() {
-        // Initialize OpenAI model
-        OpenAiChatModel model = OpenAiChatModel.builder()
+        AzureOpenAiChatModel model = AzureOpenAiChatModel.builder()
                 .apiKey(System.getenv("AZURE_OPENAI_KEY"))
-                .baseUrl(System.getenv("AZURE_OPENAI_ENDPOINT"))
-                .modelName("gpt-4o")
+                .endpoint(System.getenv("AZURE_OPENAI_ENDPOINT"))
+                .deploymentName(System.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"))
+                .temperature(0.2)
+                .logRequestsAndResponses(true)
                 .build();
 
         // Create AI service

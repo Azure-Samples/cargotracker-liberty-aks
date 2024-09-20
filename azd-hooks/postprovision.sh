@@ -1,7 +1,7 @@
 HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
 HELM_REPO_NAME="cargotracker-liberty-aks"
 AZURE_OPENAI_MODEL_NAME="gpt-4o"
-AZURE_OPENAI_MODEL_VERSION="20240806"
+AZURE_OPENAI_MODEL_VERSION="2024-08-06"
 
 # enable Helm support
 azd config set alpha.aks.helm on

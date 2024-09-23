@@ -95,9 +95,9 @@ module monitoring './shared/monitoring.bicep' = {
  scope: rg
 }
 
-output ACRPassword string = openLibertyOnAks.outputs.acrPassword
-output ACRServer string = openLibertyOnAks.outputs.acrServerName
-output ACRUserName string = openLibertyOnAks.outputs.acrUsername
+output ACR_PASSWORD string = openLibertyOnAks.outputs.acrPassword
+output ACR_SERVER string = openLibertyOnAks.outputs.acrServerName
+output ACR_USER_NAME string = openLibertyOnAks.outputs.acrUsername
 output AZURE_AKS_CLUSTER_NAME string = openLibertyOnAks.outputs.clusterName
 output AZURE_REGISTRY_NAME string = openLibertyOnAks.outputs.acrServerName
 output AZURE_RESOURCE_GROUP string = rg.name

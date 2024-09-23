@@ -10,14 +10,14 @@ run_maven_command() {
 IMAGE_NAME=$(run_maven_command '${project.artifactId}')
 IMAGE_VERSION=$(run_maven_command '${project.version}')
 
-echo "Docker build and push to ACR Server ${ACRServer} with image name ${IMAGE_NAME} and version ${IMAGE_VERSION}"
+echo "Docker build and push to ACR Server ${ACR_SERVER} with image name ${IMAGE_NAME} and version ${IMAGE_VERSION}"
 
 mvn clean package -DskipTests
 cd target
 
-docker login -u ${ACRUserName} -p ${ACRPassword} ${ACRServer}
+docker login -u ${ACR_PASSWORD} -p ${ACR_PASSWORD} ${ACR_SERVER}
 
 export DOCKER_BUILDKIT=1
 docker buildx create --use
-docker buildx build --platform linux/amd64 -t ${ACRServer}/${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=Dockerfile . --load
-docker push ${ACRServer}/${IMAGE_NAME}:${IMAGE_VERSION}
+docker buildx build --platform linux/amd64 -t ${ACR_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION} --pull --file=Dockerfile . --load
+docker push ${ACR_SERVER}/${IMAGE_NAME}:${IMAGE_VERSION}

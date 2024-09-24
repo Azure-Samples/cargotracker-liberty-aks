@@ -11,6 +11,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
     * [Clone Cargo Tracker](#clone-cargo-tracker)
     * [Prepare your variables for deployments](#prepare-your-variables-for-deployments)
     * [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
+    * [Build Liberty on AKS Bicep templates](#build-liberty-on-aks-bicep-templates)
     * [Sign in to Azure](#sign-in-to-azure)
     * [Create a resource group](#create-a-resource-group)
     * [Prepare deployment parameters](#prepare-deployment-parameters)
@@ -24,6 +25,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
       * [Start monitoring Liberty logs in Azure Log Analytics](#start-monitoring-liberty-logs-in-azure-log-analytics)
       * [Start monitoring Cargo Tracker logs in Azure Log Analytics](#start-monitoring-cargo-tracker-logs-in-azure-log-analytics)
   * [Unit-2 - Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions)
+  * [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-AZD)
   * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
   * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
 
@@ -73,7 +75,7 @@ export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
-git checkout 20240808
+git checkout 20240924
 ```
 
 If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.
@@ -127,7 +129,6 @@ mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-${VERSION}.pom \
 
 cd ${DIR}/azure.liberty.aks
 mvn clean package -DskipTests
-
 ```
 
 ### Sign in to Azure
@@ -716,6 +717,97 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
   + An datetime format failure request.
 
 * Print app URL. Print the cargo tracker URL to pipeline summary page. Now you'are able to access cargo tracker with the URL from your browser.
+
+## Unit-3 - Automate deployments using AZD
+Use following steps to automate deployments using the Azure Developer CLI (azd).
+
+### Prerequisites
+1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 
+2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
+3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
+4. You have executed the following steps from the preceding units:
+   1. [Clone Cargo Tracker](#clone-cargo-tracker)
+   1. [Prepare your variables for deployments](#prepare-your-variables-for-deployments)
+   1. [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
+   1. [Build Liberty on AKS Bicep templates](#build-liberty-on-aks-bicep-templates)
+5. Populate the `infra/azure.liberty.aks` directory with the built Liberty on AKS Bicep templates.
+
+   ```bash
+   cd infra/azure.liberty.aks
+   envsubst < parameters_json.template > parameters.json
+   ```
+   
+   Verify the environment variables have been successfully replaced:
+   
+   ```bash
+   grep azure.liberty.aks parameters.json 
+   ```
+   
+   You should see no `$` characters in this output. If you see a `$` in the output, ensure you have followed the steps in **Prepare your variables for deployments**.
+   
+6. Copy the built Liberty on AKS Bicep templates so azd can invoke them.
+
+   ```bash
+   cp -r ${DIR}/azure.liberty.aks/target/bicep/* .
+   ```
+
+### How to Run
+
+1. Change into the directory that has cargo tracker checked out.
+
+   ```bash
+   cd ${DIR}/cargotracker
+   ```
+
+1. Run the following command to authenticate with Azure using the Azure CLI.
+    ```bash
+    az login
+    ```
+
+1. Run the following command to authenticate with Azure using the Azure Developer CLI (azd). 
+    ```bash
+    azd auth login
+    ```
+
+1. Run the following command to create a new environment using the Azure Developer CLI (azd). It's a good idea to use a disambiguation prefix for your environment name, such as your initials and todays date.
+
+    ```bash
+    azd env new gzh0919-cargotracker-liberty-aks
+    ```
+
+1. Run the following command to provision the required Azure resources. Input the required parameters when prompted.
+
+   * Be sure to select the correct Azure subscription when prompted.
+   * We observe that `westus` region has a higher likelihood of success than `eastus`.
+
+    ```bash
+    azd provision
+    ```
+    
+    For `administratorLoginPassword` enter  `Secret123456`.
+    
+    When the provisioning completes, you'll see a message similar to the following:
+    
+    ```bash
+    SUCCESS: Your application was provisioned in Azure in 27 minutes 59 seconds.
+    ```
+
+2. Ensure Docker is running locally. Run the following command to deploy the Cargo Tracker application to Azure Kubernetes Service (AKS) using the Azure Developer CLI (azd).
+
+    ```bash
+    azd deploy
+    ```
+
+3. Wait for the deployment to complete. Once the deployment is complete, you can access the Cargo Tracker application using the URL provided in the output.
+
+You can now exercise the Cargo Tracker functionality as shown in Appendix 1.
+
+### Clean up
+
+The steps in this section show you how to clean up and deallocte the resources deployed in the previous section.
+
+1. `azd down` 
+
 
 ## Appendix 1 - Exercise Cargo Tracker Functionality
 

@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "_artifactsLocation": {
-      "value": "https://raw.githubusercontent.com/WASdev/azure.liberty.aks/048e776e9efe2ffed8368812e198c1007ba94b2c/src/main/"
+        "value": "https://raw.githubusercontent.com/WASdev/azure.liberty.aks/${LIBERTY_AKS_REPO_REF}/src/main/"
     },
     "createCluster": {
       "value": true

@@ -736,7 +736,7 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 
    ```bash
    git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git
-   cd cargotracker-liberty-aks/cargotracker
+   cd cargotracker-liberty-aks
    ```
 
 1. Run the following command to authenticate with Azure using the Azure CLI.

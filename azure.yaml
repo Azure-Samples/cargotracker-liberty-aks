@@ -4,6 +4,12 @@ name: cargotracker-liberty-aks-demo
 metadata:
     template: cargotracker-liberty-aks-demo@1.0.0
 hooks:
+    preprovision:
+        posix:
+            shell: sh
+            continueOnError: false
+            interactive: true
+            run: azd-hooks/preprovision.sh
     postprovision:
         posix:
             shell: sh

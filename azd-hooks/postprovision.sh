@@ -1,3 +1,18 @@
+# if folder tmp-build exists, delete the folder
+if [ -d "tmp-build" ];
+  then rm -rf tmp-build;
+fi
+
+export ACR_NAME=$(az acr list  -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
+export ACR_SERVER=$(az acr show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
+export ACR_USER_NAME=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
+export ACR_PASSWORD=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
+
+echo ACR_NAME=$ACR_NAME
+echo ACR_SERVER=$ACR_SERVER
+echo ACR_USER_NAME=$ACR_USER_NAME
+echo ACR_PASSWORD=$ACR_PASSWORD
+
 # enable Helm support
 azd config set alpha.aks.helm on
 
@@ -65,7 +80,7 @@ IMAGE_VERSION=$(run_maven_command '${project.version}')
 ##########################################################
 cat << EOF > custom-values.yaml
 appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
-loginServer: ${AZURE_REGISTRY_NAME}
+loginServer: ${ACR_SERVER}
 imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
 EOF

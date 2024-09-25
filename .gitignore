@@ -23,8 +23,7 @@
 hs_err_pid*
 
 target/*
-<<<<<<< HEAD
-=======
 /custom-values.yaml
 /.idea/
->>>>>>> 80fda3d (Refactor ACR variable names for consistency and clarity.)
+/tmp-build/
+/infra/azure.liberty.aks/

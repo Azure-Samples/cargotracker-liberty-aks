@@ -46,6 +46,7 @@ In this sample, you will:
   * Verify your application
   * Monitor application
   * Automate deployments using GitHub Actions
+  * Automate deployments using AZD
 
 ## Prerequisites
 
@@ -64,6 +65,9 @@ In this sample, you will:
   - Your subscription is accessed using an Azure Service Principal with at least **Contributor** and **User Access Administrator** permissions.
 
 ## Unit-1 - Deploy and monitor Cargo Tracker
+
+> [!NOTE]  
+> You can jump to [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-azd) if you want to automate deployments using AZD instead of manually deploying Cargo Tracker.
 
 ### Clone Cargo Tracker
 
@@ -728,10 +732,11 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 
 ### How to Run
 
-1. Change into the directory that has cargo tracker checked out.
+1. Clone the Cargo Tracker repository to your development environment.
 
    ```bash
-   cd ${DIR}/cargotracker
+   git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git
+   cd cargotracker-liberty-aks/cargotracker
    ```
 
 1. Run the following command to authenticate with Azure using the Azure CLI.

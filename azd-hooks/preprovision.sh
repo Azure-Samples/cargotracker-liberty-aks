@@ -1,5 +1,5 @@
 az extension add --upgrade -n application-insights
-source ../.scripts/setup-env-variables-template.sh
+source .scripts/setup-env-variables-template.sh
 
 mkdir tmp-build
 DIR=$(pwd)/tmp-build

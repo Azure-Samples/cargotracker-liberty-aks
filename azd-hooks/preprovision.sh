@@ -31,3 +31,5 @@ cp -r ${DIR}/azure.liberty.aks/target/bicep/* ${DIR}/../infra/azure.liberty.aks
 
 # shell sleep 5 seconds
 sleep 5
+
+rm -rf ${DIR}

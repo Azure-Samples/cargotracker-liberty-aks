@@ -1,4 +1,5 @@
 az extension add --upgrade -n application-insights
+source ../.scripts/setup-env-variables-template.sh
 
 mkdir tmp-build
 DIR=$(pwd)/tmp-build
@@ -8,6 +9,7 @@ cd ${DIR}
 git clone https://github.com/WASdev/azure.liberty.aks ${DIR}/azure.liberty.aks
 
 cd ${DIR}/azure.liberty.aks
+git checkout ${LIBERTY_AKS_REPO_REF}
 export VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
 
 cd ${DIR}

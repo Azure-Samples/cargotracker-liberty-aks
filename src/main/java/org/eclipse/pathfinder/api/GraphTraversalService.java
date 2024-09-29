@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
@@ -63,6 +64,7 @@ public class GraphTraversalService {
             String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
             if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
                 ObjectMapper objectMapper = new ObjectMapper();
+                objectMapper.registerModule(new JavaTimeModule());
                 List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
                 });
                 if (transitPaths != null) {

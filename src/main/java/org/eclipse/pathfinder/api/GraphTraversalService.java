@@ -60,9 +60,13 @@ public class GraphTraversalService {
                                               String deadline) throws JsonProcessingException {
 
         String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
-        if (isValidJsonUsingJackson(shortestPath)) {
+        if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
             ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.readValue(shortestPath, new TypeReference<List<TransitPath>>() {});
+            List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
+            });
+            if (transitPaths != null) {
+                return transitPaths;
+            }
         }
 
         List<String> allVertices = dao.listLocations();

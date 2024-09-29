@@ -9,8 +9,6 @@ export AZURE_OPENAI_MODEL_NAME="gpt-4o"
 export AZURE_OPENAI_MODEL_VERSION="2024-08-06"
 export ACR_NAME=$(az acr list  -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
 export ACR_SERVER=$(az acr show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
-export ACR_USER_NAME=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
-export ACR_PASSWORD=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
 export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 # enable Helm support

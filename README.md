@@ -729,6 +729,7 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 
 2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
 3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
+4. Helm installed. You can install Helm by following the instructions [here](https://helm.sh/docs/intro/install/).
 
 ### How to Run
 

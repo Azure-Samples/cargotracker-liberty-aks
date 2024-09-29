@@ -95,11 +95,7 @@ module monitoring './shared/monitoring.bicep' = {
  scope: rg
 }
 
-output ACR_PASSWORD string = openLibertyOnAks.outputs.acrPassword
-output ACR_SERVER string = openLibertyOnAks.outputs.acrServerName
-output ACR_USER_NAME string = openLibertyOnAks.outputs.acrUsername
 output AZURE_AKS_CLUSTER_NAME string = openLibertyOnAks.outputs.clusterName
-output AZURE_REGISTRY_NAME string = openLibertyOnAks.outputs.acrServerName
 output AZURE_RESOURCE_GROUP string = rg.name
 output DB_NAME string = 'liberty-db-${suffix}'
 output DB_RESOURCE_NAME string = 'liberty-server-${suffix}'

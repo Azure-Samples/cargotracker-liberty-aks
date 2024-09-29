@@ -1,16 +1,25 @@
-HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
-HELM_REPO_NAME="cargotracker-liberty-aks"
-AZURE_OPENAI_MODEL_NAME="gpt-4o"
-AZURE_OPENAI_MODEL_VERSION="2024-08-06"
+# if folder tmp-build exists, delete the folder
+if [ -d "tmp-build" ];
+  then rm -rf tmp-build;
+fi
+
+export HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
+export HELM_REPO_NAME="cargotracker-liberty-aks"
+export AZURE_OPENAI_MODEL_NAME="gpt-4o"
+export AZURE_OPENAI_MODEL_VERSION="2024-08-06"
+export ACR_NAME=$(az acr list  -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
+export ACR_SERVER=$(az acr show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
+export ACR_USER_NAME=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
+export ACR_PASSWORD=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 # enable Helm support
 azd config set alpha.aks.helm on
 
-echo "Create Helm repository"
 # Check if the repo exists before removing
 if helm repo list | grep -q "${HELM_REPO_NAME}"; then
+  echo "Removing Repo '${HELM_REPO_NAME}'"
   helm repo remove ${HELM_REPO_NAME}
-  echo "Repo '${HELM_REPO_NAME}' removed."
 else
   echo "Repo '${HELM_REPO_NAME}' not found in the list."
 fi
@@ -18,7 +27,6 @@ fi
 helm repo add ${HELM_REPO_NAME} ${HELM_REPO_URL}
 
 
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
@@ -106,7 +114,7 @@ IMAGE_VERSION=$(run_maven_command '${project.version}')
 ##########################################################
 cat << EOF > custom-values.yaml
 appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
-loginServer: ${AZURE_REGISTRY_NAME}
+loginServer: ${ACR_SERVER}
 imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
 azureOpenAIKey: ${AZURE_OPENAI_KEY}

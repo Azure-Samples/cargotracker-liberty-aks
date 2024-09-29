@@ -11,6 +11,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
     * [Clone Cargo Tracker](#clone-cargo-tracker)
     * [Prepare your variables for deployments](#prepare-your-variables-for-deployments)
     * [Clone Liberty on AKS Bicep templates](#clone-liberty-on-aks-bicep-templates)
+    * [Build Liberty on AKS Bicep templates](#build-liberty-on-aks-bicep-templates)
     * [Sign in to Azure](#sign-in-to-azure)
     * [Create a resource group](#create-a-resource-group)
     * [Prepare deployment parameters](#prepare-deployment-parameters)
@@ -45,6 +46,7 @@ In this sample, you will:
   * Verify your application
   * Monitor application
   * Automate deployments using GitHub Actions
+  * Automate deployments using AZD
 
 ## Prerequisites
 
@@ -64,6 +66,9 @@ In this sample, you will:
 
 ## Unit-1 - Deploy and monitor Cargo Tracker
 
+> [!NOTE]  
+> You can jump to [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-azd) if you want to automate deployments using AZD instead of manually deploying Cargo Tracker.
+
 ### Clone Cargo Tracker
 
 Clone the sample app repository to your development environment.
@@ -74,7 +79,7 @@ export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
-git checkout 20240808
+git checkout 20240924
 ```
 
 If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.
@@ -128,7 +133,6 @@ mvn install:install-file -Dfile=${DIR}/azure-javaee-iaas-parent-${VERSION}.pom \
 
 cd ${DIR}/azure.liberty.aks
 mvn clean package -DskipTests
-
 ```
 
 ### Sign in to Azure
@@ -726,14 +730,13 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
 3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
 
-
 ### How to Run
 
-1. Change into the directory that has cargo tracker checked out, and ensure the tag is checked out.
+1. Clone the Cargo Tracker repository to your development environment.
 
    ```bash
-   cd ${DIR}/cargotracker
-   git checkout 20240919
+   git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git
+   cd cargotracker-liberty-aks
    ```
 
 1. Run the following command to authenticate with Azure using the Azure CLI.
@@ -753,6 +756,9 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
     ```
 
 1. Run the following command to provision the required Azure resources. Input the required parameters when prompted.
+
+   * Be sure to select the correct Azure subscription when prompted.
+   * We observe that `westus` region has a higher likelihood of success than `eastus`.
 
     ```bash
     azd provision

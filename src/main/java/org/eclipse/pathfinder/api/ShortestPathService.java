@@ -28,14 +28,14 @@ public class ShortestPathService {
 
 
     @GET
-    @Path("/shortest-path")
+    @Path("/getShortestPath")
     @Produces(MediaType.TEXT_PLAIN)
     public String getShortestPath(@QueryParam("from") String from, @QueryParam("to") String to) {
         return shortestPathAi.chat(location,voyage,carrier_movement,from,to);
     }
 
     @GET
-    @Path("/get-location")
+    @Path("/getLocation")
     @Produces(MediaType.TEXT_PLAIN)
     public String getLocation() {
         return this.location;
@@ -43,9 +43,9 @@ public class ShortestPathService {
 
 
     @GET
-    @Path("/get-movement")
+    @Path("/getMovement")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getCarrier_movement() {
+    public String getMovement() {
         return this.carrier_movement;
     }
 }

@@ -58,14 +58,16 @@ public class GraphTraversalService {
                                               @Size(min = 8, max = 8, message = "Deadline value must be eight characters long.")
                                               @QueryParam("deadline")
                                               String deadline) throws JsonProcessingException {
-
-        String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
-        if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
-            });
-            if (transitPaths != null) {
-                return transitPaths;
+        if (!System.getenv("AZURE_OPENAI_ENDPOINT").isEmpty()
+                && !System.getenv("AZURE_OPENAI_KEY").isEmpty()) {
+            String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
+            if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
+                });
+                if (transitPaths != null) {
+                    return transitPaths;
+                }
             }
         }
 

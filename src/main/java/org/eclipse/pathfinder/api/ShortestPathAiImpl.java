@@ -6,7 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class ShortestPathAiImpl implements ShortestPathAi {
-    private final ShortestPathAi ai;
+    private final ShortestPathAi shortestPathAi;
 
     public ShortestPathAiImpl() {
         AzureOpenAiChatModel model = AzureOpenAiChatModel.builder()
@@ -18,7 +18,7 @@ public class ShortestPathAiImpl implements ShortestPathAi {
                 .build();
 
         // Create AI service
-        this.ai = AiServices.builder(ShortestPathAi.class)
+        this.shortestPathAi = AiServices.builder(ShortestPathAi.class)
                 .chatLanguageModel(model)
                 .build();
     }
@@ -26,6 +26,6 @@ public class ShortestPathAiImpl implements ShortestPathAi {
 
     @Override
     public String chat(String location,String voyage, String carrier_movement, String from,String to) {
-        return ai.chat(location, voyage, carrier_movement, from, to);
+        return shortestPathAi.chat(location, voyage, carrier_movement, from, to);
     }
 }

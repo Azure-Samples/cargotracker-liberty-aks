@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export GATEWAY_PUBLICIP_ID=$(az network application-gateway list \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)

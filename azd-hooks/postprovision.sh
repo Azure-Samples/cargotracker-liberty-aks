@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # if folder tmp-build exists, delete the folder
 if [ -d "tmp-build" ];
   then rm -rf tmp-build;

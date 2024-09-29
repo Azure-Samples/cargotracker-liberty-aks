@@ -118,7 +118,7 @@ If you see a warning about being in 'detached HEAD' state, it is safe to ignore.
 
 ```bash
 cd ${DIR}/azure.liberty.aks
-export VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+export VERSION=$(grep -A4 "<parent>" pom.xml | grep "<version>" | awk -F'[<>]' '{print $3}')
 
 cd ${DIR}
 curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \

@@ -6,6 +6,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotNull;
@@ -29,6 +36,8 @@ public class GraphTraversalService {
         + "the last three must be alphanumeric (excluding 0 and 1).";
     private final Random random = new Random();
     @Inject private GraphDao dao;
+    @Inject
+    private ShortestPathService service;
 
     @GET
     @Path("/shortest-path")
@@ -49,7 +58,20 @@ public class GraphTraversalService {
                                               // TODO [DDD] Apply regular expression validation.
                                               @Size(min = 8, max = 8, message = "Deadline value must be eight characters long.")
                                               @QueryParam("deadline")
-                                              String deadline) {
+                                              String deadline) throws JsonProcessingException {
+        if (!System.getenv("AZURE_OPENAI_ENDPOINT").isEmpty()
+                && !System.getenv("AZURE_OPENAI_KEY").isEmpty()) {
+            String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
+            if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                objectMapper.registerModule(new JavaTimeModule());
+                List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
+                });
+                if (transitPaths != null) {
+                    return transitPaths;
+                }
+            }
+        }
 
         List<String> allVertices = dao.listLocations();
         allVertices.remove(originUnLocode);
@@ -97,4 +119,29 @@ public class GraphTraversalService {
         int chunk = total > 4 ? 1 + random.nextInt(5) : total;
         return allLocations.subList(0, chunk);
     }
+
+    private boolean isValidJsonUsingJackson(String jsonString) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.readTree(jsonString);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String getShortestPathWithTimeout(String originUnLocode, String destinationUnLocode) {
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() ->
+                service.getShortestPath(originUnLocode, destinationUnLocode)
+        );
+
+        try {
+            return future.completeOnTimeout("[]", 5, TimeUnit.SECONDS)
+                    .get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+
 }

@@ -5,17 +5,16 @@ if [ -d "tmp-build" ];
   then rm -rf tmp-build;
 fi
 
+export HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
+export HELM_REPO_NAME="cargotracker-liberty-aks"
+export AZURE_OPENAI_MODEL_NAME="gpt-4o"
+export AZURE_OPENAI_MODEL_VERSION="2024-08-06"
 export ACR_NAME=$(az acr list  -g ${RESOURCE_GROUP_NAME} --query [0].name -o tsv)
 export ACR_SERVER=$(az acr show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'loginServer' -o tsv)
-export ACR_USER_NAME=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'username' -o tsv)
-export ACR_PASSWORD=$(az acr credential show -n $ACR_NAME -g ${RESOURCE_GROUP_NAME} --query 'passwords[0].value' -o tsv)
+export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 # enable Helm support
 azd config set alpha.aks.helm on
-
-echo "Create Helm repository"
-HELM_REPO_URL="https://azure-javaee.github.io/cargotracker-liberty-aks"
-HELM_REPO_NAME="cargotracker-liberty-aks"
 
 # Check if the repo exists before removing
 if helm repo list | grep -q "${HELM_REPO_NAME}"; then
@@ -27,7 +26,7 @@ fi
 
 helm repo add ${HELM_REPO_NAME} ${HELM_REPO_URL}
 
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+
 
 az aks enable-addons \
   --addons monitoring \
@@ -64,6 +63,45 @@ az postgres flexible-server firewall-rule create \
 az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
 az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
 
+az cognitiveservices account create \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --location ${LOCATION} \
+    --kind OpenAI \
+    --custom-domain $AZURE_OPENAI_NAME \
+    --sku s0
+
+resourceId=$(az cognitiveservices account show \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --name ${AZURE_OPENAI_NAME} \
+    --query id --output tsv | tr -d '\r')
+
+az resource update \
+    --ids ${resourceId} \
+    --set properties.networkAcls="{'defaultAction':'Allow', 'ipRules':[],'virtualNetworkRules':[]}"
+
+az cognitiveservices account deployment create \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --deployment-name ${AZURE_OPENAI_MODEL_NAME} \
+    --model-name ${AZURE_OPENAI_MODEL_NAME} \
+    --model-version ${AZURE_OPENAI_MODEL_VERSION} \
+    --model-format OpenAI \
+    --sku Standard \
+    --capacity 10
+
+AZURE_OPENAI_KEY=$(az cognitiveservices account keys list \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --query key1 \
+    --output tsv)
+
+AZURE_OPENAI_ENDPOINT=$(az cognitiveservices account show \
+    --name ${AZURE_OPENAI_NAME} \
+    --resource-group ${RESOURCE_GROUP_NAME} \
+    --query "properties.endpoint" \
+    --output tsv)
+
 run_maven_command() {
     mvn -q -Dexec.executable=echo -Dexec.args="$1" --non-recursive exec:exec 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | tr -d '\r\n'
 }
@@ -79,6 +117,10 @@ appInsightConnectionString: ${APP_INSIGHTS_CONNECTION_STRING}
 loginServer: ${ACR_SERVER}
 imageName: ${IMAGE_NAME}
 imageTag: ${IMAGE_VERSION}
+azureOpenAIKey: ${AZURE_OPENAI_KEY}
+azureOpenAIEndpoint: ${AZURE_OPENAI_ENDPOINT}
+azureOpenAIDeploymentName: ${AZURE_OPENAI_MODEL_NAME}
+
 EOF
 
 ##########################################################

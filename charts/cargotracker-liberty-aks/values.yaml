@@ -6,6 +6,10 @@ replicaCount: 3
 
 namespace: "default"
 
+azureOpenAIKey: ""
+azureOpenAIEndpoint: ""
+azureOpenAIDeploymentName: ""
+
 appInsightConnectionString: ""
 db:
   ServerName: ""

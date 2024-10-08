@@ -1,3 +1,5 @@
+#!/bin/bash
+
 az extension add --upgrade -n application-insights
 source .scripts/setup-env-variables-template.sh
 
@@ -10,7 +12,7 @@ git clone https://github.com/WASdev/azure.liberty.aks ${DIR}/azure.liberty.aks
 
 cd ${DIR}/azure.liberty.aks
 git checkout ${LIBERTY_AKS_REPO_REF}
-export VERSION=$(mvn help:evaluate -Dexpression=project.parent.version -q -DforceStdout | grep -v '^\[' | tr -d '\r')
+export VERSION=$(grep -A4 "<parent>" pom.xml | grep "<version>" | awk -F'[<>]' '{print $3}')
 
 cd ${DIR}
 curl -L -o ${DIR}/azure-javaee-iaas-parent-${VERSION}.pom  \

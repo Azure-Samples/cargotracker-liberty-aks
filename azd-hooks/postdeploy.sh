@@ -7,4 +7,6 @@ export GATEWAY_HOSTNAME=$(az network public-ip show --ids ${GATEWAY_PUBLICIP_ID}
 export CARGO_TRACKER_URL="http://${GATEWAY_HOSTNAME}/cargo-tracker/"
 echo "Cargo Tracker URL: ${CARGO_TRACKER_URL}"
 
-kubectl rollout restart deployment/cargo-tracker-cluster
+if kubectl get deployment cargo-tracker-cluster > /dev/null 2>&1; then
+  kubectl rollout restart deployment/cargo-tracker-cluster
+fi

@@ -1,5 +1,6 @@
 package org.eclipse.pathfinder.api;
 
+import java.io.StringReader;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -9,12 +10,13 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import jakarta.json.Json;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -58,15 +60,13 @@ public class GraphTraversalService {
                                               // TODO [DDD] Apply regular expression validation.
                                               @Size(min = 8, max = 8, message = "Deadline value must be eight characters long.")
                                               @QueryParam("deadline")
-                                              String deadline) throws JsonProcessingException {
+                                              String deadline) {
         if (!System.getenv("AZURE_OPENAI_ENDPOINT").isEmpty()
                 && !System.getenv("AZURE_OPENAI_KEY").isEmpty()) {
             String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
-            if (isValidJsonUsingJackson(shortestPath) && !shortestPath.equals("[]")) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.registerModule(new JavaTimeModule());
-                List<TransitPath> transitPaths = objectMapper.readValue(shortestPath, new TypeReference<>() {
-                });
+            if (isValidJsonUsingJsonP(shortestPath) && !shortestPath.equals("[]")) {
+                Jsonb jsonb = JsonbBuilder.create();
+                List<TransitPath> transitPaths = jsonb.fromJson(shortestPath, new ArrayList<TransitPath>(){}.getClass().getGenericSuperclass());
                 if (transitPaths != null) {
                     return transitPaths;
                 }
@@ -120,11 +120,10 @@ public class GraphTraversalService {
         return allLocations.subList(0, chunk);
     }
 
-    private boolean isValidJsonUsingJackson(String jsonString) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.readTree(jsonString);
-            return true;
+    private boolean isValidJsonUsingJsonP(String json) {
+        try (JsonReader reader = Json.createReader(new StringReader(json))) {
+            JsonValue jsonValue = reader.read();
+            return jsonValue.getValueType() == JsonValue.ValueType.ARRAY;
         } catch (Exception e) {
             return false;
         }

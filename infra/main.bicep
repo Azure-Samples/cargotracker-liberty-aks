@@ -47,6 +47,9 @@ param administratorLogin string = 'azureroot'
 @secure()
 param administratorLoginPassword string
 
+@description('The Model name for OpenAI')
+param openAIModelName string = 'gpt-4o'
+
 // Tags that should be applied to all resources.
 //
 // Note that 'azd-service-name' tags should be applied separately to service host resources.
@@ -95,13 +98,34 @@ module monitoring './shared/monitoring.bicep' = {
  scope: rg
 }
 
+module cognitiveservices './shared/cognitiveservices.bicep' = {
+  name: 'openai'
+  scope: rg
+  params: {
+    location: location
+    name: 'openai-${suffix}'
+    customSubDomainName: 'openai-${suffix}'
+    deployments: [
+      {
+        name: 'openai-deployment-${suffix}'
+        model: {
+          name: openAIModelName
+          version: '2024-08-06'
+        }
+      }
+    ]
+  }
+}
+
+output AZURE_OPENAI_KEY string =cognitiveservices.outputs.key
+output AZURE_OPENAI_ENDPOINT string =cognitiveservices.outputs.endpoint
+output AZURE_OPENAI_MODEL_NAME string = openAIModelName
 output AZURE_AKS_CLUSTER_NAME string = openLibertyOnAks.outputs.clusterName
 output AZURE_RESOURCE_GROUP string = rg.name
 output DB_NAME string = 'liberty-db-${suffix}'
 output DB_RESOURCE_NAME string = 'liberty-server-${suffix}'
 output DB_USER_NAME string = administratorLogin
 output DB_USER_PASSWORD string = administratorLoginPassword
-output AZURE_OPENAI_NAME string = 'openai-${suffix}'
 output LOCATION string = location
 output RESOURCE_GROUP_NAME string = rg.name
 output WORKSPACE_ID string = monitoring.outputs.logAnalyticsWorkspaceId

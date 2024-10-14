@@ -117,6 +117,29 @@ module cognitiveservices './shared/cognitiveservices.bicep' = {
   }
 }
 
+module flexibleserver './shared/flexibleserver.bicep' = {
+  name: 'flexibleserver'
+  scope: rg
+  params: {
+      location: location
+      databaseNames: [
+        'liberty-db-${suffix}'
+      ]
+      name: 'liberty-server-${suffix}'
+      sku: {
+        name: 'Standard_D4ds_v4'
+        tier: 'GeneralPurpose'
+      }
+      storage: {
+        storageSizeGB: 64
+      }
+      version: '15'
+      administratorLogin: administratorLogin
+      administratorLoginPassword: administratorLoginPassword
+      allowAzureIPsFirewall: true
+    }
+}
+
 output AZURE_OPENAI_KEY string =cognitiveservices.outputs.key
 output AZURE_OPENAI_ENDPOINT string =cognitiveservices.outputs.endpoint
 output AZURE_OPENAI_MODEL_NAME string = openAIModelName

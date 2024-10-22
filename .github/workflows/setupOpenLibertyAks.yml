@@ -3,8 +3,8 @@ name: Setup OpenLiberty on AKS
 on:
   workflow_dispatch:
     inputs:
-      region:
-        description: "Azure region for resources"
+      location:
+        description: "Azure region location for resources"
         required: true
         default: westus
       deleteResource:

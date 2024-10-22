@@ -24,10 +24,10 @@ env:
   appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.60.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
+  dbServerName: libertydbs
   dbName: libertydb${{ github.run_id }}${{ github.run_number }}
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
-  dbServerName: libertydbs
   logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
@@ -139,10 +139,10 @@ jobs:
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "Deploy DB with name " ${{ env.dbName }}
+            echo "Deploy Postgresql flexible server with server name " ${{ env.dbServerName }}
             az postgres flexible-server create \
             --resource-group ${{ env.resourceGroupForDB }} \
-            --name ${{ env.dbName }} \
+            --name ${{ env.dbServerName }} \
             --location ${location} \
             --admin-user ${{ env.dbAdminUser }} \
             --admin-password ${{ env.dbPassword }} \
@@ -153,26 +153,26 @@ jobs:
             --yes
             az postgres flexible-server db create \
               --resource-group ${{ env.resourceGroupForDB }} \
-              --server-name ${{ env.dbName }} \
-              --database-name ${{ env.dbServerName }}
+              --server-name ${{ env.dbServerName }} \
+              --database-name ${{ env.dbName }}
             sleep 1m
             echo "Allow Access To Azure Services"
             az postgres flexible-server firewall-rule create \
-              -g ${{ env.resourceGroupForDB }} \
-              -n ${{ env.dbName }} \
-              -r "AllowAllWindowsAzureIps" \
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --name ${{ env.dbServerName }} \
+              --rule-name "AllowAllWindowsAzureIps" \
               --start-ip-address "0.0.0.0" \
               --end-ip-address "0.0.0.0"
 
             az postgres flexible-server parameter set \
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --server-name ${{ env.dbServerName }} \
               --name max_prepared_transactions \
-              --value 10 \
-              -g ${{ env.resourceGroupForDB }} \
-              --server-name ${{ env.dbName }}
-
+              --value 10 
+              
             az postgres flexible-server restart \
-              -g ${{ env.resourceGroupForDB }} \
-              --name ${{ env.dbName }}
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --name ${{ env.dbServerName }}
             
   # Invoke the solution template, passing the necessary parameters to identify the configuration of AKS.
   deploy-openliberty-on-aks:
@@ -381,9 +381,9 @@ jobs:
           export LOGIN_SERVER=${{steps.prepare_variables.outputs.azureACRServer}}
           export USER_NAME=${{steps.prepare_variables.outputs.azureACRUserName}}
           export PASSWORD=${{steps.prepare_variables.outputs.azureACRPassword}}
-          export DB_SERVER_NAME=${{ env.dbName }}.postgres.database.azure.com
+          export DB_SERVER_NAME=${{ env.dbServerName }}.postgres.database.azure.com
           export DB_PORT_NUMBER=5432
-          export DB_NAME=${{env.dbServerName}}
+          export DB_NAME=${{env.dbName}}
           export DB_USER=${{ env.dbAdminUser }}
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}

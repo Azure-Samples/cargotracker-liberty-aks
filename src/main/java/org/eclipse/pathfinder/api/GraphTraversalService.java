@@ -135,7 +135,7 @@ public class GraphTraversalService {
         );
 
         try {
-            return future.completeOnTimeout("[]", 5, TimeUnit.SECONDS)
+            return future.completeOnTimeout("[]", 2, TimeUnit.MINUTES)
                     .get();
         } catch (Exception e) {
             e.printStackTrace();

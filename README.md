@@ -259,22 +259,22 @@ While the previous command runs, use `az postgres flexible-server create` to pro
 ```bash
 az postgres flexible-server create \
    --resource-group ${RESOURCE_GROUP_NAME} \
-   --name ${DB_RESOURCE_NAME} \
+   --name ${DB_SERVER_NAME} \
    --location ${LOCATION} \
-   --admin-user ${DB_USER} \
+   --admin-user ${DB_ADMIN_USER} \
    --admin-password ${DB_PASSWORD} \
    --version 15 --public-access 0.0.0.0 
    --tier Burstable --sku-name Standard_B1ms --yes
 
 az postgres flexible-server db create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --server-name ${DB_RESOURCE_NAME} \
+  --server-name ${DB_SERVER_NAME} \
   --database-name ${DB_NAME}
 
 echo "Allow Access to Azure Services"
 az postgres flexible-server firewall-rule create \
   -g ${RESOURCE_GROUP_NAME} \
-  -n ${DB_RESOURCE_NAME} \
+  -n ${DB_SERVER_NAME} \
   -r "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
@@ -283,9 +283,9 @@ az postgres flexible-server firewall-rule create \
 Once the server has been deployed, you must set this parameter and restart the database.
 
 ```bash
-az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
+az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_SERVER_NAME}
 
-az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
+az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_SERVER_NAME}
 ```
 
 ### Create Application Insights
@@ -313,11 +313,11 @@ export WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROU
 This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_CLUSTER_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
-  --name ${AKS_NAME} \
+  --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --workspace-resource-id ${WORKSPACE_ID}
 ```
@@ -382,9 +382,9 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_CLUSTER_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
-az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
+az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_CLUSTER_NAME
 ```
 
 Run the following command to create secrets for data source connection and Application Insights connection.

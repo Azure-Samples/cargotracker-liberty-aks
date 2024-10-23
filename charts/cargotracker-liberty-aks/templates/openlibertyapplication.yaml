@@ -41,6 +41,21 @@ spec:
         secretKeyRef:
           name: app-insight-secret
           key: connection.string
+    - name: AZURE_OPENAI_KEY
+      valueFrom:
+        secretKeyRef:
+          name: openai-secret
+          key: azureOpenAIKey
+    - name: AZURE_OPENAI_ENDPOINT
+      valueFrom:
+        secretKeyRef:
+          name: openai-secret
+          key: azureOpenAIEndpoint
+    - name: AZURE_OPENAI_DEPLOYMENT_NAME
+      valueFrom:
+        secretKeyRef:
+          name: openai-secret
+          key: azureOpenAIDeploymentName
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

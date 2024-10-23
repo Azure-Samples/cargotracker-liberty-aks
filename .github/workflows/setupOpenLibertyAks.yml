@@ -487,6 +487,7 @@ jobs:
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
  # Delete azure resources
   cleanup:
+    name: cleanup within ${{ inputs.timeWaitBeforeDelete }}
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest

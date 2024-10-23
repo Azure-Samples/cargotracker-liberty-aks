@@ -28,7 +28,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
   * [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-AZD)
   * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
   * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
-  * [Appendix 3 - Run cargotracker locally against cloud supporting resources](#appendix-3---run-locally-with-remote-resources)
+  * [Appendix 3 - Run cargotracker locally against cloud supporting resources](#appendix-3---run-locally-with-remote-resources-without-docker)
 
 ## Introduction
 
@@ -472,7 +472,7 @@ The API requires the following parameters:
 You can run the following curl command:
 
 ```bash
-curl -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
+curl --verbose -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
 ```
 
 The `/handling/reports` REST API allows you to send an asynchronous message with the information to the handling event registration system for proper registration.
@@ -861,14 +861,61 @@ The steps in this section show you how to clean up and deallocte the resources d
 
 See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](https://github.com/eclipse-ee4j/cargotracker/)
 
-## Appendix 3 - Run locally with remote resources
+## Appendix 3 - Run locally with remote resources without docker
 
 The steps in this section guide you to deploy supporting resources with the GitHub workflow, yet run the cargotracker app locally.
 
-1. Follow the steps in [Unit 2 Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions), but when you run the workflow set the value for **Set this value to true to cause the workflow to only deploy required supporting resources** to **true**.
-
-1. Wait until the workflow successfully completes the **deploy-db** job.
+1. Follow the steps in [Unit 2 Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions), but when you run the workflow, set the value for **Set this value to true to cause the workflow to only deploy required supporting resources** to **true**.
 
 1. Follow the steps in [Unit-1 - Deploy and monitor Cargo Tracker](#unit-1---deploy-and-monitor-cargo-tracker) up to and including **Prepare your variables for deployments**.
 
+   Use the values from the workflow to fill out the values in your `setup-env-variables.sh`.
+   
+   * `DB_RESOURCE_NAME` must be the name of the database resource, such as `liberty-dbs-1148487969748`. Find this value by entering the resource group in which the workflow deployed the database and selecting the database resource.
+   
+   * `DB_NAME` must be `postgres`.
+   
+   * If using the AI shortest path feature, set the `AZURE_OPENAI` variables as described in Unit 1.
+   
+   * Leave the remainder of the variables unchanged. They are not used in the "Run locally with remote resources without Docker" scenario.
+   
+1. Remove the Application Insights agent jar. 
 
+   1. Edit the file `${DIR}/cargotracker/src/main/liberty/config/jvm.options`.
+   
+      Remove the entire line containing the string `applicationinsights-agent.jar`.
+   
+      Application Insights is not used in the "Run locally with remote resources without Docker" scenario.
+      
+      Note that addtional JVM options can be inserted into this file, such as local debugger options `-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005`.
+   
+1. Wait until the workflow successfully completes the **deploy-db** job before continuing.
+
+1. Enable network access from your local workstation to the database.
+
+   1. Sign in to the Azure portal using the same subscription to which you deployed the database.
+   
+   1. Find the resource group in which the database has been deployed.
+   
+   1. Select the database resource. It will be named something like `liberty-dbs-1148487969748`.
+   
+   1. In the left navigation panel, under **Settings** select **Networking**.
+   
+   1. Find the text **Add current client IP address**. Select the text and select **Save**. Wait for the save operation to complete.
+
+1. Build the cargotracker.war. The POM substitutes the environment variables for the database connection.
+
+   ```bash
+   mvn -PopenLibertyOnAks clean install
+   ```
+   
+1. Run the cargotracker.war. Make sure to run this command in the same shell where the environment variables are defined.
+
+   ```bash
+   mvn -PopenLibertyOnAks liberty:run
+   ```
+
+1. Your cargotracker will now be running at `http://localhost:9080/cargo-tracker/`.
+
+   1. To exercise the UI, follow the steps in [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality). If you get an unexpected error, wait a few minutes and try again.
+   1. To exercise the REST endpoint, including the AI shortest path feature, follow the steps in [Use Cargo Tracker and make a few HTTP calls](#use-cargo-tracker-and-make-a-few-http-calls)

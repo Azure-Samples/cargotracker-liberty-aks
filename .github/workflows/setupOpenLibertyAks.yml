@@ -7,10 +7,17 @@ on:
         description: "Azure region location for resources"
         required: true
         default: westus
-      deleteResource:
-        description: "True to delete all the Azure resources after the deployments. False to keep Azure resources."
-        default: "true"
+      timeWaitBeforeDelete:
+        description: 'Choose the wait time before deleting resources: 30m (30 minutes), 2h (2 hours), 6h (6 hours), 12h (12 hours), 0 (immediately)'
         required: true
+        type: choice
+        default: 0
+        options:
+          - 30m
+          - 2h
+          - 6h
+          - 12h
+          - 0
   repository_dispatch:
   schedule:
     - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.
@@ -21,8 +28,8 @@ env:
   appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.60.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
-  dbServerName: libertydbs
-  dbName: libertydb${{ github.run_id }}${{ github.run_number }}
+  dbServerName: liberty-dbs-${{ github.run_id }}${{ github.run_number }}
+  dbName: libertydb
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
   workspaceName: loga${{ github.run_id }}${{ github.run_number }}
@@ -487,9 +494,12 @@ jobs:
         id: azure-login
         with:
           creds: ${{ env.azureCredentials }}
+      - name: Pause ${{ github.event.inputs.timeWaitBeforeDelete }} before deleting resources
+        run: |
+          echo "Sleeping for ${{ github.event.inputs.timeWaitBeforeDelete }} before deleting resources."
+          sleep ${{ github.event.inputs.timeWaitBeforeDelete }}
       - name: Delete Azure resources.
         uses: azure/CLI@v1
-        if: ${{ env.deleteResource == 'true' }}
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |

@@ -28,6 +28,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
   * [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-AZD)
   * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
   * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
+  * [Appendix 3 - Run cargotracker locally against cloud supporting resources](#appendix-3---run-locally-with-remote-resources)
 
 ## Introduction
 
@@ -79,10 +80,40 @@ export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
-git checkout 20240924
+git checkout 20241023
 ```
 
 If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.
+
+### Optional -- Prepare Azure OpenAI for use
+
+The steps in this section are optional unless you want to enable the AI shortest path computation.
+
+1. Create an Azure Open AI account and get the required credentials.
+
+   1. In a new tab, visit [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal).
+   1. If you want to use the following steps, select the **Portal** tab. Otherwise, just follow the documentation to get the following environment variable values in the way best suited to your needs.
+
+      - `AZURE_OPENAI_KEY`: Your Azure Open AI API key.
+      - `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI Endpoint. This will be something like `https://ejb011017openai.openai.azure.com/`
+      - `AZURE_OPENAI_DEPLOYMENT_NAME`: Your Azure Open AI Deployment name. This example uses `gpt-4o`
+      
+   1. Follow the steps up to but not including the section **Deploy a model**.
+   
+   1. Expand **Resource management** in the left navigation bar and select **Keys and Endpoint**.
+   
+   1. Select the copy icon next to the value for **KEY 1** and save the value as the value of your `AZURE_OPENAI_KEY` environment variable.
+   
+   1. Select the copy icon next to the value for **Endpoint** and save the value as the value of your `AZURE_OPENAI_ENDPOINT` environment variable.
+   
+   1. Continue in the steps with the section **Deploy a model**.
+   
+   1. When you get to the step asking you to **Create new deployment**, use the following substitutions.
+   
+      1. For **Select a model** select **gpt-4o**.
+      1. For **Deployment name** use **gpt-4o**.
+
+    - To learn more about Azure OpenAI see [Azure OpenAI Documentation](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=cli).
 
 ### Prepare your variables for deployments
 
@@ -92,7 +123,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/setup-env-variables.sh` and customize the values as indicated.
+Open `${DIR}/setup-env-variables.sh` and customize the values as indicated. If running the AI shortest path feature, uncomment and customize those values as described previously.
 
 Then, set the environment:
 
@@ -631,7 +662,9 @@ This creates a local copy of the repository for you to work in.
 * Above the list of workflow runs, select Run workflow.
 * Configure the workflow.
   + Use the Branch dropdown to select the workflow's main branch.
-  + For **Included in names to disambiguate. Get from another pipeline execution**, enter disambiguation prefix, e.g. `test01`.
+  + For **Azure region** select an appropriate region. Take note of this region for potential use later.
+  + For **Choose the wait time before deleting resources** select an appropriate value for your usage.
+  + Leave the remaining values at their default.
 
 5. Click Run workflow.
 
@@ -827,3 +860,15 @@ The steps in this section show you how to clean up and deallocte the resources d
 ## Appendix 2 - Learn more about Cargo Tracker
 
 See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](https://github.com/eclipse-ee4j/cargotracker/)
+
+## Appendix 3 - Run locally with remote resources
+
+The steps in this section guide you to deploy supporting resources with the GitHub workflow, yet run the cargotracker app locally.
+
+1. Follow the steps in [Unit 2 Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions), but when you run the workflow set the value for **Set this value to true to cause the workflow to only deploy required supporting resources** to **true**.
+
+1. Wait until the workflow successfully completes the **deploy-db** job.
+
+1. Follow the steps in [Unit-1 - Deploy and monitor Cargo Tracker](#unit-1---deploy-and-monitor-cargo-tracker) up to and including **Prepare your variables for deployments**.
+
+

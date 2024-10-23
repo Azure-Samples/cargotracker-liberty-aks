@@ -1,4 +1,5 @@
 name: Setup OpenLiberty on AKS
+run-name: Setup OpenLiberty on AKS with `timeWaitBeforeDelete:` ${{ inputs.timeWaitBeforeDelete }}
 
 on:
   workflow_dispatch:

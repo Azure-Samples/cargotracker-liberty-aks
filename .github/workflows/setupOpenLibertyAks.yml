@@ -12,8 +12,9 @@ on:
         description: 'Choose the cleanup option after the workflow completes'
         required: true
         type: choice
-        default: delete after 30m
+        default: delete_immediately
         options:
+          - delete_immediately
           - delete_after_30m
           - delete_after_2hours
           - delete_after_5hours
@@ -497,7 +498,9 @@ jobs:
           creds: ${{ env.azureCredentials }}
       - name: Handle cleanup options
         run: |
-          if [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_30m" ]; then
+          if [ "${{ github.event.inputs.cleanupOptions }}" == "delete_immediately" ]; then
+            echo "Resources will be deleted immediately."
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_30m" ]; then
             echo "Sleeping for 30m before deleting resources."
             sleep 30m
           elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_2hours" ]; then

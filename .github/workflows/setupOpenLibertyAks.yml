@@ -36,7 +36,7 @@ env:
   workspaceName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
-  resourceGroupForDB: rg-liberty-db-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForDB: rg-liberty-db-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   resourceGroupForOpenLibertyAks: rg-ol-aks-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c

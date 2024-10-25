@@ -1,5 +1,5 @@
 name: Setup OpenLiberty on AKS
-run-name: Setup OpenLiberty on AKS with `timeWaitBeforeDelete:` ${{ inputs.timeWaitBeforeDelete }}
+run-name: Setup OpenLiberty on AKS with `cleanupOptions:` ${{ inputs.cleanupOptions }}
 
 on:
   workflow_dispatch:
@@ -8,21 +8,17 @@ on:
         description: "Azure region location for resources"
         required: true
         default: westus
-      timeWaitBeforeDelete:
-        description: 'Choose the wait time before deleting resources: 30m (30 minutes), 2h (2 hours), 6h (6 hours), 12h (12 hours), 0 (immediately)'
+      cleanupOptions:
+        description: 'Choose the cleanup option after the workflow completes'
         required: true
         type: choice
-        default: 2h
+        default: delete_immediately
         options:
-          - 30m
-          - 2h
-          - 6h
-          - 12h
-          - 0
-      deployRequiredSupportingResourcesOnly:
-        description: "Set this value to true to cause the workflow to only deploy required supporting resources and skip deploying the AKS cluster and app."
-        default: "false"
-        required: true
+          - delete_immediately
+          - delete_after_30m
+          - delete_after_2hours
+          - delete_after_5hours
+          - never_delete
   repository_dispatch:
   schedule:
     - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.
@@ -40,7 +36,7 @@ env:
   workspaceName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
-  resourceGroupForDB: rg-liberty-db-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForDB: rg-liberty-db-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   resourceGroupForOpenLibertyAks: rg-ol-aks-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c
@@ -494,7 +490,7 @@ jobs:
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
  # Delete azure resources
   cleanup:
-    name: cleanup within ${{ inputs.timeWaitBeforeDelete }}
+    name: provisioned resources will ${{ inputs.cleanupOptions }} automatically
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest
@@ -503,12 +499,27 @@ jobs:
         id: azure-login
         with:
           creds: ${{ env.azureCredentials }}
-      - name: Pause ${{ github.event.inputs.timeWaitBeforeDelete }} before deleting resources
+      - name: Handle cleanup options
         run: |
-          echo "Sleeping for ${{ github.event.inputs.timeWaitBeforeDelete }} before deleting resources."
-          sleep ${{ github.event.inputs.timeWaitBeforeDelete }}
+          if [ "${{ github.event.inputs.cleanupOptions }}" == "delete_immediately" ]; then
+            echo "Resources will be deleted immediately."
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_30m" ]; then
+            echo "Sleeping for 30m before deleting resources."
+            sleep 30m
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_2hours" ]; then
+            echo "Sleeping for 2h before deleting resources."
+            sleep 2h
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_5hours" ]; then
+            echo "Sleeping for 5h before deleting resources."
+            sleep 5h
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "never_delete" ]; then
+            echo "Resources will not be deleted automatically."
+            exit 0
+          fi
+
       - name: Delete Azure resources.
         uses: azure/CLI@v1
+        if: ${{ github.event.inputs.cleanupOptions  != 'never_delete' }}
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |

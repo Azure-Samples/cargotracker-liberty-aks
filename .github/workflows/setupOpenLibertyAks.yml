@@ -21,8 +21,9 @@ on:
           - never_delete
       deployRequiredSupportingResourcesOnly:
         description: "Set this value to true to cause the workflow to only deploy required supporting resources and skip deploying the AKS cluster and app."
-        default: "false"
         required: true
+        type: boolean
+        default: false
   repository_dispatch:
   schedule:
     - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.
@@ -159,7 +160,7 @@ jobs:
   deploy-openliberty-on-aks:
     needs: preflight
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == 'false' }}
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
         uses: actions/checkout@v2
@@ -248,7 +249,7 @@ jobs:
   deploy-azure-monitor:
     needs: [preflight, deploy-openliberty-on-aks]
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == 'false' }}
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - uses: azure/login@v1
         id: azure-login
@@ -296,7 +297,7 @@ jobs:
   deploy-cargo-tracker:
     needs: [preflight, deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == 'false' }}
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

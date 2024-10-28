@@ -19,6 +19,10 @@ on:
           - delete_after_2hours
           - delete_after_5hours
           - never_delete
+      deployRequiredSupportingResourcesOnly:
+        description: "Set this value to true to cause the workflow to only deploy required supporting resources and skip deploying the AKS cluster and app."
+        default: "false"
+        required: true
   repository_dispatch:
   schedule:
     - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.

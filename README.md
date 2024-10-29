@@ -873,7 +873,7 @@ The steps in this section guide you to deploy supporting resources with the GitH
    
    * `DB_RESOURCE_NAME` must be the name of the database resource, such as `liberty-dbs-1148487969748`. Find this value by entering the resource group in which the workflow deployed the database and selecting the database resource.
    
-   * `DB_NAME` must be `postgres`.
+   * `DB_NAME` must be `libertydb`.
    
    * If using the AI shortest path feature, set the `AZURE_OPENAI` variables as described in Unit 1.
    

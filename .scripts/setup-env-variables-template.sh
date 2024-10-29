@@ -3,7 +3,7 @@ export RESOURCE_GROUP_NAME="abc1110rg" # customize this
 export LOCATION=eastus # customize this, if desired
 
 export APPINSIGHTS_NAME="appinsights$(date +%s)"
-export DB_NAME=${DB_RESOURCE_NAME}
+export DB_NAME=libertydb
 export DB_PASSWORD="Secret123456" # PostgreSQL database password
 export DB_PORT_NUMBER=5432
 export DB_SERVER_NAME="${DB_RESOURCE_NAME}.postgres.database.azure.com" # PostgreSQL host name

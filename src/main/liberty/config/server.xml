@@ -95,18 +95,18 @@
                maxQueueDepth="5000" />
     </messagingEngine>
 
-    <jmsQueueConnectionFactory connectionManagerRef="CargoCM" jndiName="jms/QueueConnectionFactory">
+    <jmsQueueConnectionFactory connectionManagerRef="CargoCM" jndiName="java:app/jms/QueueConnectionFactory">
     </jmsQueueConnectionFactory>
 
-    <jmsQueue id="CargoHandledQueue" jndiName="jms/CargoHandledQueue">
+    <jmsQueue id="CargoHandledQueue" jndiName="java:app/jms/CargoHandledQueue">
         <properties.wasJms queueName="CargoHandledQueue"/>
     </jmsQueue>
 
     <jmsActivationSpec id="cargo-tracker/CargoHandledConsumer">
-        <properties.wasJms destinationLookup="jms/CargoHandledQueue" destinationRef="CargoHandledQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
+        <properties.wasJms destinationLookup="java:app/jms/CargoHandledQueue" destinationRef="CargoHandledQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
     </jmsActivationSpec>  
 
-    <jmsQueue id="MisdirectedCargoQueue" jndiName="jms/MisdirectedCargoQueue">
+    <jmsQueue id="MisdirectedCargoQueue" jndiName="java:app/jms/MisdirectedCargoQueue">
         <properties.wasJms queueName="MisdirectedCargoQueue"/>
     </jmsQueue>
 
@@ -114,7 +114,7 @@
         <properties.wasJms destinationRef="MisdirectedCargoQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
     </jmsActivationSpec>  
 
-    <jmsQueue id="DeliveredCargoQueue" jndiName="jms/DeliveredCargoQueue">
+    <jmsQueue id="DeliveredCargoQueue" jndiName="java:app/jms/DeliveredCargoQueue">
         <properties.wasJms queueName="DeliveredCargoQueue"/>
     </jmsQueue>
 
@@ -122,7 +122,7 @@
         <properties.wasJms destinationRef="DeliveredCargoQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
     </jmsActivationSpec>  
 
-    <jmsQueue id="HandlingEventRegistrationAttemptQueue" jndiName="jms/HandlingEventRegistrationAttemptQueue">
+    <jmsQueue id="HandlingEventRegistrationAttemptQueue" jndiName="java:app/jms/HandlingEventRegistrationAttemptQueue">
         <properties.wasJms queueName="HandlingEventRegistrationAttemptQueue"/>
     </jmsQueue>
 
@@ -130,7 +130,7 @@
         <properties.wasJms destinationRef="HandlingEventRegistrationAttemptQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
     </jmsActivationSpec>  
 
-    <jmsQueue id="RejectedRegistrationAttemptsQueue" jndiName="jms/RejectedRegistrationAttemptsQueue">
+    <jmsQueue id="RejectedRegistrationAttemptsQueue" jndiName="java:app/jms/RejectedRegistrationAttemptsQueue">
         <properties.wasJms queueName="RejectedRegistrationAttemptsQueue"/>
     </jmsQueue>
 

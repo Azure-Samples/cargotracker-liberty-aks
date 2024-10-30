@@ -20,16 +20,16 @@ public class JmsApplicationEvents implements ApplicationEvents, Serializable {
   private static final int LOW_PRIORITY = 0;
   @Inject JMSContext jmsContext;
 
-  @Resource(lookup = "jms/CargoHandledQueue")
+  @Resource(lookup = "java:app/jms/CargoHandledQueue")
   private Destination cargoHandledQueue;
 
-  @Resource(lookup = "jms/MisdirectedCargoQueue")
+  @Resource(lookup = "java:app/jms/MisdirectedCargoQueue")
   private Destination misdirectedCargoQueue;
 
-  @Resource(lookup = "jms/DeliveredCargoQueue")
+  @Resource(lookup = "java:app/jms/DeliveredCargoQueue")
   private Destination deliveredCargoQueue;
 
-  @Resource(lookup = "jms/HandlingEventRegistrationAttemptQueue")
+  @Resource(lookup = "java:app/jms/HandlingEventRegistrationAttemptQueue")
   private Destination handlingEventQueue;
 
   @Inject private Logger logger;

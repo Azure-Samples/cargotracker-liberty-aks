@@ -64,27 +64,27 @@
     <!-- Defining these at the application server level instead of here can 
 	 be more operations friendly and help make deployment even faster. -->
     <jms-destination>
-        <name>jms/CargoHandledQueue</name>
+        <name>java:app/jms/CargoHandledQueue</name>
         <interface-name>jakarta.jms.Queue</interface-name>
         <destination-name>CargoHandledQueue</destination-name>
     </jms-destination>
     <jms-destination>
-        <name>jms/MisdirectedCargoQueue</name>
+        <name>java:app/jms/MisdirectedCargoQueue</name>
         <interface-name>jakarta.jms.Queue</interface-name>
         <destination-name>MisdirectedCargoQueue</destination-name>
     </jms-destination>
     <jms-destination>
-        <name>jms/DeliveredCargoQueue</name>
+        <name>java:app/jms/DeliveredCargoQueue</name>
         <interface-name>jakarta.jms.Queue</interface-name>
         <destination-name>DeliveredCargoQueue</destination-name>
     </jms-destination>
     <jms-destination>
-        <name>jms/RejectedRegistrationAttemptsQueue</name>
+        <name>java:app/jms/RejectedRegistrationAttemptsQueue</name>
         <interface-name>jakarta.jms.Queue</interface-name>
         <destination-name>RejectedRegistrationAttemptsQueue</destination-name>
     </jms-destination>
     <jms-destination>
-        <name>jms/HandlingEventRegistrationAttemptQueue</name>
+        <name>java:app/jms/HandlingEventRegistrationAttemptQueue</name>
         <interface-name>jakarta.jms.Queue</interface-name>
         <destination-name>HandlingEventRegistrationAttemptQueue</destination-name>
     </jms-destination>

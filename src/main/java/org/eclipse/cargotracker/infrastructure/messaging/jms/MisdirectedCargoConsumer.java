@@ -16,7 +16,7 @@ import jakarta.jms.MessageListener;
           propertyValue = "jakarta.jms.Queue"),
       @ActivationConfigProperty(
           propertyName = "destinationLookup",
-          propertyValue = "jms/MisdirectedCargoQueue")
+          propertyValue = "java:app/jms/MisdirectedCargoQueue")
     })
 public class MisdirectedCargoConsumer implements MessageListener {
 

@@ -757,6 +757,7 @@ This job is to build app, push it to ACR and apply it to Open Liberty server run
 
 ## Unit-3 - Automate deployments using AZD
 Use following steps to automate deployments using the Azure Developer CLI (azd).
+You can leverage the [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=Azure-Samples/cargotracker-liberty-aks) feature in GitHub to skip the following **Prerequisites** step and start from **How to Run**. 
 
 ### Prerequisites
 1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 

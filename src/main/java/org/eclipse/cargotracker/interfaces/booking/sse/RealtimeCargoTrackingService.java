@@ -46,7 +46,7 @@ public class RealtimeCargoTrackingService {
     public void tracking(@Context SseEventSink eventSink) {
         synchronized (RealtimeCargoTrackingService.class) {
             try {
-                String name = "java:app/jms/CargoHandledQueue";
+                String name = "jms/CargoHandledQueue";
                 InitialContext ctx = new InitialContext();
                 Object obj = InitialContext.doLookup(name);
             } catch (NamingException e) {

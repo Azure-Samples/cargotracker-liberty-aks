@@ -25,7 +25,7 @@ import org.eclipse.cargotracker.domain.model.cargo.TrackingId;
           propertyValue = "jakarta.jms.Queue"),
       @ActivationConfigProperty(
           propertyName = "destinationLookup",
-          propertyValue = "java:app/jms/CargoHandledQueue")
+          propertyValue = "jms/CargoHandledQueue")
     })
 public class CargoHandledConsumer implements MessageListener {
 

@@ -95,7 +95,7 @@
                maxQueueDepth="5000" />
     </messagingEngine>
 
-    <jmsQueueConnectionFactory connectionManagerRef="CargoCM" jndiName="java:app/jms/QueueConnectionFactory">
+    <jmsQueueConnectionFactory connectionManagerRef="CargoCM" jndiName="jms/QueueConnectionFactory">
     </jmsQueueConnectionFactory>
 
     <jmsQueue id="CargoHandledQueue" jndiName="jms/CargoHandledQueue">
@@ -103,7 +103,7 @@
     </jmsQueue>
 
     <jmsActivationSpec id="cargo-tracker/CargoHandledConsumer">
-        <properties.wasJms destinationLookup="java:app/jms/CargoHandledQueue" destinationRef="CargoHandledQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
+        <properties.wasJms destinationLookup="jms/CargoHandledQueue" destinationRef="CargoHandledQueue" destinationType="jakarta.jms.Queue" maxConcurrency="200"/>
     </jmsActivationSpec>  
 
     <jmsQueue id="MisdirectedCargoQueue" jndiName="jms/MisdirectedCargoQueue">

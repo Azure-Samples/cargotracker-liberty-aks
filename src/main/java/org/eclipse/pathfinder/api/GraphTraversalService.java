@@ -1,13 +1,22 @@
 package org.eclipse.pathfinder.api;
 
+import java.io.StringReader;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import jakarta.json.Json;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -29,6 +38,8 @@ public class GraphTraversalService {
         + "the last three must be alphanumeric (excluding 0 and 1).";
     private final Random random = new Random();
     @Inject private GraphDao dao;
+    @Inject
+    private ShortestPathService service;
 
     @GET
     @Path("/shortest-path")
@@ -50,6 +61,18 @@ public class GraphTraversalService {
                                               @Size(min = 8, max = 8, message = "Deadline value must be eight characters long.")
                                               @QueryParam("deadline")
                                               String deadline) {
+        String endpoint = System.getenv("AZURE_OPENAI_ENDPOINT");
+        String key = System.getenv("AZURE_OPENAI_KEY");
+        if ((null != endpoint && !endpoint.isEmpty()) && (null != key && !key.isEmpty())) {
+            String shortestPath = getShortestPathWithTimeout(originUnLocode, destinationUnLocode);
+            if (isValidJsonUsingJsonP(shortestPath) && !shortestPath.equals("[]")) {
+                Jsonb jsonb = JsonbBuilder.create();
+                List<TransitPath> transitPaths = jsonb.fromJson(shortestPath, new ArrayList<TransitPath>(){}.getClass().getGenericSuperclass());
+                if (transitPaths != null) {
+                    return transitPaths;
+                }
+            }
+        }
 
         List<String> allVertices = dao.listLocations();
         allVertices.remove(originUnLocode);
@@ -97,4 +120,28 @@ public class GraphTraversalService {
         int chunk = total > 4 ? 1 + random.nextInt(5) : total;
         return allLocations.subList(0, chunk);
     }
+
+    private boolean isValidJsonUsingJsonP(String json) {
+        try (JsonReader reader = Json.createReader(new StringReader(json))) {
+            JsonValue jsonValue = reader.read();
+            return jsonValue.getValueType() == JsonValue.ValueType.ARRAY;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String getShortestPathWithTimeout(String originUnLocode, String destinationUnLocode) {
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() ->
+                service.getShortestPath(originUnLocode, destinationUnLocode)
+        );
+
+        try {
+            return future.completeOnTimeout("[]", 2, TimeUnit.MINUTES)
+                    .get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+
 }

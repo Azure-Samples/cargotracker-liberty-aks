@@ -1,19 +1,29 @@
 name: Setup OpenLiberty on AKS
+run-name: Setup OpenLiberty on AKS with `cleanupOptions:` ${{ inputs.cleanupOptions }}
 
 on:
   workflow_dispatch:
     inputs:
-      disambiguationSuffix:
-        description: "Included in names to disambiguate. Get from another pipeline execution"
-        required: true
-      region:
-        description: "Azure region for resources"
+      location:
+        description: "Azure region location for resources"
         required: true
         default: westus
-      deleteResource:
-        description: "True to delete all the Azure resources after the deployments. False to keep Azure resources."
-        default: "true"
+      cleanupOptions:
+        description: 'Choose the cleanup option after the workflow completes'
         required: true
+        type: choice
+        default: delete_immediately
+        options:
+          - delete_immediately
+          - delete_after_30m
+          - delete_after_2hours
+          - delete_after_5hours
+          - never_delete
+      deployRequiredSupportingResourcesOnly:
+        description: "Set this value to true to cause the workflow to only deploy required supporting resources and skip deploying the AKS cluster and app."
+        required: true
+        type: boolean
+        default: false
   repository_dispatch:
   schedule:
     - cron: '0 0 27 * *' # run the workflow at the end of 27th monthly.
@@ -24,14 +34,15 @@ env:
   appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
   azCliVersion: 2.60.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
-  dbName: libertydb${{ github.run_id }}${{ github.run_number }}
+  dbServerName: liberty-dbs-${{ github.run_id }}${{ github.run_number }}
+  dbName: libertydb
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
-  dbServerName: libertydbs
-  logAnalyticsName: loga${{ github.run_id }}${{ github.run_number }}
+  workspaceName: loga${{ github.run_id }}${{ github.run_number }}
   namespace: default
   replicas: 3
-  resourceGroupForDB: liberty-db-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForDB: rg-liberty-db-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
+  resourceGroupForOpenLibertyAks: rg-ol-aks-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c
 
@@ -39,33 +50,7 @@ jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
   preflight:
     runs-on: ubuntu-20.04
-    outputs:
-        deleteResource: ${{steps.setup-env-variables.outputs.deleteResource}}
-        location: ${{ steps.setup-env-variables.outputs.location }}
-        resourceGroupForOpenLibertyAks: ol-aks-${{ steps.setup-env-variables.outputs.disambiguationSuffix }}-${{ github.run_number }}
-    steps:      
-      - name: Set up ENV variables
-        id: setup-env-variables
-        run: |
-          deleteResource=${{ github.event.inputs.deleteResource }}
-          if [ -z ${deleteResource} ]; then
-            deleteResource='true'
-          fi
-          echo "deleteResource: ${deleteResource}"
-
-          location=${{ github.event.inputs.region }}
-          if [[ -z "${location}" ]];then
-            location=westus
-          fi
-
-          disambiguationSuffix=${{ github.event.inputs.disambiguationSuffix }}
-          if [[ -z "${disambiguationSuffix}" ]];then
-            disambiguationSuffix=$(date +%m%d)
-          fi
-
-          echo "deleteResource=${deleteResource}" >> $GITHUB_OUTPUT
-          echo "location=${location}" >> $GITHUB_OUTPUT
-          echo "disambiguationSuffix=${disambiguationSuffix}" >> $GITHUB_OUTPUT
+    steps:
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.29.47/bicep-linux-x64
@@ -119,9 +104,6 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     steps:
-      - name: Set variables
-        run: |
-          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
       - uses: azure/login@v1
         id: azure-login
         with:
@@ -132,18 +114,18 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForDB }}
-            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${location}
+            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ inputs.location }}
       - name: Set Up Azure Postgresql to Test dbTemplate
         id: setup-postgresql
         uses: azure/CLI@v1
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "Deploy DB with name " ${{ env.dbName }}
+            echo "Deploy Postgresql flexible server with server name " ${{ env.dbServerName }}
             az postgres flexible-server create \
             --resource-group ${{ env.resourceGroupForDB }} \
-            --name ${{ env.dbName }} \
-            --location ${location} \
+            --name ${{ env.dbServerName }} \
+            --location ${{ inputs.location }} \
             --admin-user ${{ env.dbAdminUser }} \
             --admin-password ${{ env.dbPassword }} \
             --version 16 \
@@ -153,36 +135,33 @@ jobs:
             --yes
             az postgres flexible-server db create \
               --resource-group ${{ env.resourceGroupForDB }} \
-              --server-name ${{ env.dbName }} \
-              --database-name ${{ env.dbServerName }}
+              --server-name ${{ env.dbServerName }} \
+              --database-name ${{ env.dbName }}
             sleep 1m
             echo "Allow Access To Azure Services"
             az postgres flexible-server firewall-rule create \
-              -g ${{ env.resourceGroupForDB }} \
-              -n ${{ env.dbName }} \
-              -r "AllowAllWindowsAzureIps" \
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --name ${{ env.dbServerName }} \
+              --rule-name "AllowAllWindowsAzureIps" \
               --start-ip-address "0.0.0.0" \
               --end-ip-address "0.0.0.0"
 
             az postgres flexible-server parameter set \
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --server-name ${{ env.dbServerName }} \
               --name max_prepared_transactions \
-              --value 10 \
-              -g ${{ env.resourceGroupForDB }} \
-              --server-name ${{ env.dbName }}
-
+              --value 10 
+              
             az postgres flexible-server restart \
-              -g ${{ env.resourceGroupForDB }} \
-              --name ${{ env.dbName }}
+              --resource-group ${{ env.resourceGroupForDB }} \
+              --name ${{ env.dbServerName }}
             
   # Invoke the solution template, passing the necessary parameters to identify the configuration of AKS.
   deploy-openliberty-on-aks:
     needs: preflight
     runs-on: ubuntu-20.04
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
-      - name: Set variables
-        run: |
-          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
-          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
         uses: actions/checkout@v2
         with:
@@ -223,8 +202,8 @@ jobs:
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "create resource group" ${resourceGroupForOpenLibertyAks}
-            az group create --verbose --name ${resourceGroupForOpenLibertyAks} --location ${location}
+            echo "create resource group" ${{ env.resourceGroupForOpenLibertyAks }}
+            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ inputs.location }}
       - name: Checkout cargotracker
         uses: actions/checkout@v2
         with:
@@ -232,7 +211,7 @@ jobs:
       - name: Prepare parameter file
         run: |
           echo "replace placeholders using real parameter"
-          sed -i "s/#location#/${location}/g; \
+          sed -i "s/#location#/${{ inputs.location }}/g; \
                   s/#testbranchName#/${aksRepoBranchName}/g; \
                   s/#gitUserName#/${aksRepoUserName}/g" \
                   cargotracker/src/test/aks/parameters.json
@@ -250,7 +229,7 @@ jobs:
           inlineScript: |
             az deployment group validate \
             --debug \
-            --resource-group ${resourceGroupForOpenLibertyAks} \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
             --name openliberty-on-aks \
             --parameters @cargotracker/src/test/aks/parameters.json \
             --template-file ${artifactName}/mainTemplate.json
@@ -262,7 +241,7 @@ jobs:
           inlineScript: |
             az deployment group create \
             --verbose \
-            --resource-group ${resourceGroupForOpenLibertyAks} \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
             --name openliberty-on-aks \
             --parameters @cargotracker/src/test/aks/parameters.json \
             --template-file ${artifactName}/mainTemplate.json
@@ -270,11 +249,8 @@ jobs:
   deploy-azure-monitor:
     needs: [preflight, deploy-openliberty-on-aks]
     runs-on: ubuntu-20.04
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
-      - name: Set variables
-        run: |
-          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
-          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - uses: azure/login@v1
         id: azure-login
         with:
@@ -286,22 +262,22 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             az monitor log-analytics workspace create \
-              --resource-group ${resourceGroupForOpenLibertyAks} \
-              --workspace-name ${{ env.logAnalyticsName }} \
-              --location ${location}
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
+              --workspace-name ${{ env.workspaceName }} \
+              --location ${{ inputs.location }}
       - name: Enable Container Insights
         id: enable-container-insights
         uses: azure/CLI@v1
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            workspaceId=$(az monitor log-analytics workspace list -g ${resourceGroupForOpenLibertyAks} --query '[0].id' -o tsv)
-            aksClusterName=$(az aks list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
+            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
+            aksClusterName=$(az aks list  -g ${{ env.resourceGroupForOpenLibertyAks }} --query [0].name -o tsv)
 
             az aks enable-addons \
               --addons monitoring \
               --name ${aksClusterName} \
-              --resource-group ${resourceGroupForOpenLibertyAks} \
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --workspace-resource-id ${workspaceId}
       - name: Provision Application Insights
         id: provision-app-insights
@@ -311,21 +287,18 @@ jobs:
           inlineScript: |
             az extension add --upgrade -n application-insights
 
-            workspaceId=$(az monitor log-analytics workspace list -g ${resourceGroupForOpenLibertyAks} --query '[0].id' -o tsv)
+            workspaceId=$(az monitor log-analytics workspace list -g ${{ env.resourceGroupForOpenLibertyAks }} --query '[0].id' -o tsv)
             az monitor app-insights component create \
-              --resource-group ${resourceGroupForOpenLibertyAks} \
+              --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --app ${{ env.appInsightsName }} \
-              --location ${location} \
+              --location ${{ inputs.location }} \
               --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
     needs: [preflight, deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
+    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
     steps:
-      - name: Set variables
-        run: |
-          echo "location=${{ needs.preflight.outputs.location }}" >> $GITHUB_ENV
-          echo "resourceGroupForOpenLibertyAks=${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}" >> $GITHUB_ENV
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -343,26 +316,26 @@ jobs:
         id: prepare_variables
         run: |
           echo "Query AKS cluster name"
-          aksClusterName=$(az aks list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
+          aksClusterName=$(az aks list  -g ${{ env.resourceGroupForOpenLibertyAks }} --query [0].name -o tsv)
           if [ -z "${aksClusterName}" ] ; then
             echo "Failed to obtain AKS. Exiting."
             exit 1
           fi
           echo "aksClusterName=${aksClusterName}" >> $GITHUB_ENV
 
-          acrName=$(az acr list  -g ${resourceGroupForOpenLibertyAks} --query [0].name -o tsv)
+          acrName=$(az acr list  -g ${{ env.resourceGroupForOpenLibertyAks }} --query [0].name -o tsv)
           if [ -z "${acrName}" ] ; then
             echo "Falied to obtain ACR. Exiting."
             exit 1
           fi
 
-          azureACRServer=$(az acr show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'loginServer' -o tsv)
-          azureACRUserName=$(az acr credential show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'username' -o tsv)
-          azureACRPassword=$(az acr credential show -n $acrName -g ${resourceGroupForOpenLibertyAks} --query 'passwords[0].value' -o tsv)
+          azureACRServer=$(az acr show -n $acrName -g ${{ env.resourceGroupForOpenLibertyAks }} --query 'loginServer' -o tsv)
+          azureACRUserName=$(az acr credential show -n $acrName -g ${{ env.resourceGroupForOpenLibertyAks }} --query 'username' -o tsv)
+          azureACRPassword=$(az acr credential show -n $acrName -g ${{ env.resourceGroupForOpenLibertyAks }} --query 'passwords[0].value' -o tsv)
           
           az extension add --upgrade -n application-insights
           appInsightsConnectionString=$(az monitor app-insights component show \
-            --resource-group ${resourceGroupForOpenLibertyAks} \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
             --query '[0].connectionString' -o tsv)
 
           echo "azureACRServer=${azureACRServer}" >> $GITHUB_OUTPUT
@@ -381,9 +354,9 @@ jobs:
           export LOGIN_SERVER=${{steps.prepare_variables.outputs.azureACRServer}}
           export USER_NAME=${{steps.prepare_variables.outputs.azureACRUserName}}
           export PASSWORD=${{steps.prepare_variables.outputs.azureACRPassword}}
-          export DB_SERVER_NAME=${{ env.dbName }}.postgres.database.azure.com
+          export DB_SERVER_NAME=${{ env.dbServerName }}.postgres.database.azure.com
           export DB_PORT_NUMBER=5432
-          export DB_NAME=${{env.dbServerName}}
+          export DB_NAME=${{env.dbName}}
           export DB_USER=${{ env.dbAdminUser }}
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}
@@ -412,7 +385,7 @@ jobs:
       - name: Connect to AKS cluster
         run: |
           echo "connect to cluster"
-          az aks get-credentials --resource-group ${resourceGroupForOpenLibertyAks} --name ${aksClusterName}
+          az aks get-credentials --resource-group ${{ env.resourceGroupForOpenLibertyAks }} --name ${aksClusterName}
       - name: Apply deployment files
         run: |
           echo "record time before restart"
@@ -458,7 +431,7 @@ jobs:
       - name: Query Application URL
         run: |
           gatewayPublicIPId=$(az network application-gateway list \
-            --resource-group ${resourceGroupForOpenLibertyAks} \
+            --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
             --query '[0].frontendIPConfigurations[0].publicIPAddress.id' -o tsv)
 
           gatewayUrl=$(az network public-ip show --ids ${gatewayPublicIPId} --query 'dnsSettings.fqdn' -o tsv)
@@ -522,6 +495,7 @@ jobs:
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
  # Delete azure resources
   cleanup:
+    name: provisioned resources will ${{ inputs.cleanupOptions }} automatically
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest
@@ -530,14 +504,32 @@ jobs:
         id: azure-login
         with:
           creds: ${{ env.azureCredentials }}
+      - name: Handle cleanup options
+        run: |
+          if [ "${{ github.event.inputs.cleanupOptions }}" == "delete_immediately" ]; then
+            echo "Resources will be deleted immediately."
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_30m" ]; then
+            echo "Sleeping for 30m before deleting resources."
+            sleep 30m
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_2hours" ]; then
+            echo "Sleeping for 2h before deleting resources."
+            sleep 2h
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_5hours" ]; then
+            echo "Sleeping for 5h before deleting resources."
+            sleep 5h
+          elif [ "${{ github.event.inputs.cleanupOptions }}" == "never_delete" ]; then
+            echo "Resources will not be deleted automatically."
+            exit 0
+          fi
+
       - name: Delete Azure resources.
         uses: azure/CLI@v1
-        if: ${{ needs.preflight.outputs.deleteResource == 'true' }}
+        if: ${{ github.event.inputs.cleanupOptions  != 'never_delete' }}
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
-            echo "delete... " ${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}
-            az group delete --yes --no-wait --verbose --name ${{ needs.preflight.outputs.resourceGroupForOpenLibertyAks }}
+            echo "delete... " ${{ env.resourceGroupForOpenLibertyAks }}
+            az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForOpenLibertyAks }}
 
             echo "delete... " ${{ env.resourceGroupForDB }}
             az group delete --yes --no-wait --verbose --name ${{ env.resourceGroupForDB }}

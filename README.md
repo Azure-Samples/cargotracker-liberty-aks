@@ -28,6 +28,7 @@ Cargo Tracker is a Domain-Driven Design Jakarta EE application. The application 
   * [Unit-3 - Automate deployments using AZD](#unit-3---automate-deployments-using-AZD)
   * [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality)
   * [Appendix 2 - Learn more about Cargo Tracker](#appendix-2---learn-more-about-cargo-tracker)
+  * [Appendix 3 - Run cargotracker locally against cloud supporting resources](#appendix-3---run-locally-with-remote-resources-without-docker)
 
 ## Introduction
 
@@ -79,10 +80,40 @@ export DIR="$PWD/cargotracker-liberty-aks"
 
 git clone https://github.com/Azure-Samples/cargotracker-liberty-aks.git ${DIR}/cargotracker
 cd ${DIR}/cargotracker
-git checkout 20240924
+git checkout 20241031
 ```
 
 If you see a message about `detached HEAD state`, it is safe to ignore. It just means you have checked out a tag.
+
+### Optional -- Prepare Azure OpenAI for use
+
+The steps in this section are optional unless you want to enable the AI shortest path computation.
+
+1. Create an Azure Open AI account and get the required credentials.
+
+   1. In a new tab, visit [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal).
+   1. If you want to use the following steps, select the **Portal** tab. Otherwise, just follow the documentation to get the following environment variable values in the way best suited to your needs.
+
+      - `AZURE_OPENAI_KEY`: Your Azure Open AI API key.
+      - `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI Endpoint. This will be something like `https://ejb011017openai.openai.azure.com/`
+      - `AZURE_OPENAI_DEPLOYMENT_NAME`: Your Azure Open AI Deployment name. This example uses `gpt-4o`
+      
+   1. Follow the steps up to but not including the section **Deploy a model**.
+   
+   1. Expand **Resource management** in the left navigation bar and select **Keys and Endpoint**.
+   
+   1. Select the copy icon next to the value for **KEY 1** and save the value as the value of your `AZURE_OPENAI_KEY` environment variable.
+   
+   1. Select the copy icon next to the value for **Endpoint** and save the value as the value of your `AZURE_OPENAI_ENDPOINT` environment variable.
+   
+   1. Continue in the steps with the section **Deploy a model**.
+   
+   1. When you get to the step asking you to **Create new deployment**, use the following substitutions.
+   
+      1. For **Select a model** select **gpt-4o**.
+      1. For **Deployment name** use **gpt-4o**.
+
+    - To learn more about Azure OpenAI see [Azure OpenAI Documentation](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=cli).
 
 ### Prepare your variables for deployments
 
@@ -92,7 +123,7 @@ Create a bash script with environment variables by making a copy of the supplied
 cp ${DIR}/cargotracker/.scripts/setup-env-variables-template.sh ${DIR}/setup-env-variables.sh
 ```
 
-Open `${DIR}/setup-env-variables.sh` and customize the values as indicated.
+Open `${DIR}/setup-env-variables.sh` and customize the values as indicated. If running the AI shortest path feature, uncomment and customize those values as described previously.
 
 Then, set the environment:
 
@@ -259,22 +290,22 @@ While the previous command runs, use `az postgres flexible-server create` to pro
 ```bash
 az postgres flexible-server create \
    --resource-group ${RESOURCE_GROUP_NAME} \
-   --name ${DB_RESOURCE_NAME} \
+   --name ${DB_SERVER_NAME} \
    --location ${LOCATION} \
-   --admin-user ${DB_USER} \
+   --admin-user ${DB_ADMIN_USER} \
    --admin-password ${DB_PASSWORD} \
    --version 15 --public-access 0.0.0.0 
    --tier Burstable --sku-name Standard_B1ms --yes
 
 az postgres flexible-server db create \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --server-name ${DB_RESOURCE_NAME} \
+  --server-name ${DB_SERVER_NAME} \
   --database-name ${DB_NAME}
 
 echo "Allow Access to Azure Services"
 az postgres flexible-server firewall-rule create \
   -g ${RESOURCE_GROUP_NAME} \
-  -n ${DB_RESOURCE_NAME} \
+  -n ${DB_SERVER_NAME} \
   -r "AllowAllWindowsAzureIps" \
   --start-ip-address "0.0.0.0" \
   --end-ip-address "0.0.0.0"
@@ -283,9 +314,9 @@ az postgres flexible-server firewall-rule create \
 Once the server has been deployed, you must set this parameter and restart the database.
 
 ```bash
-az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_RESOURCE_NAME}
+az postgres flexible-server parameter set --name max_prepared_transactions --value 10 -g ${RESOURCE_GROUP_NAME} --server-name ${DB_SERVER_NAME}
 
-az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_RESOURCE_NAME}
+az postgres flexible-server restart -g ${RESOURCE_GROUP_NAME} --name ${DB_SERVER_NAME}
 ```
 
 ### Create Application Insights
@@ -313,11 +344,11 @@ export WORKSPACE_ID=$(az monitor log-analytics workspace list -g ${RESOURCE_GROU
 This quickstart uses Container Insights to monitor AKS. Enable it with the following commands. 
 
 ```bash
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_CLUSTER_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
 az aks enable-addons \
   --addons monitoring \
-  --name ${AKS_NAME} \
+  --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --workspace-resource-id ${WORKSPACE_ID}
 ```
@@ -382,9 +413,9 @@ az acr build -t ${IMAGE_NAME}:${IMAGE_VERSION} -r ${REGISTRY_NAME} .
 The image is ready to deploy to AKS. Run the following command to connect to AKS cluster.
 
 ```bash
-export AKS_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
+export AKS_CLUSTER_NAME=$(az aks list -g ${RESOURCE_GROUP_NAME} --query \[0\].name -o tsv)
 
-az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_NAME
+az aks get-credentials --resource-group ${RESOURCE_GROUP_NAME} --name $AKS_CLUSTER_NAME
 ```
 
 Run the following command to create secrets for data source connection and Application Insights connection.
@@ -441,7 +472,7 @@ The API requires the following parameters:
 You can run the following curl command:
 
 ```bash
-curl -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
+curl --verbose -X GET -H "Accept: application/json" "${CARGO_TRACKER_URL}rest/graph-traversal/shortest-path?origin=CNHKG&destination=USNYC"
 ```
 
 The `/handling/reports` REST API allows you to send an asynchronous message with the information to the handling event registration system for proper registration.
@@ -631,7 +662,9 @@ This creates a local copy of the repository for you to work in.
 * Above the list of workflow runs, select Run workflow.
 * Configure the workflow.
   + Use the Branch dropdown to select the workflow's main branch.
-  + For **Included in names to disambiguate. Get from another pipeline execution**, enter disambiguation prefix, e.g. `test01`.
+  + For **Azure region** select an appropriate region. Take note of this region for potential use later.
+  + For **Choose the wait time before deleting resources** select an appropriate value for your usage.
+  + Leave the remaining values at their default.
 
 5. Click Run workflow.
 
@@ -729,6 +762,7 @@ Use following steps to automate deployments using the Azure Developer CLI (azd).
 1. [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (azd) installed. 
 2. Docker installed. You can install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
 3. Azure CLI installed. You can install the Azure CLI by following the instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
+4. Helm installed. For instructions to install Helm see [Installing Helm](https://helm.sh/docs/intro/install/).
 
 ### How to Run
 
@@ -826,3 +860,62 @@ The steps in this section show you how to clean up and deallocte the resources d
 ## Appendix 2 - Learn more about Cargo Tracker
 
 See [Eclipse Cargo Tracker - Applied Domain-Driven Design Blueprints for Jakarta EE](https://github.com/eclipse-ee4j/cargotracker/)
+
+## Appendix 3 - Run locally with remote resources without docker
+
+The steps in this section guide you to deploy supporting resources with the GitHub workflow, yet run the cargotracker app locally.
+
+1. Follow the steps in [Unit 2 Automate deployments using GitHub Actions](#unit-2---automate-deployments-using-github-actions), but when you run the workflow, set the value for **Set this value to true to cause the workflow to only deploy required supporting resources** to **true**.
+
+1. Follow the steps in [Unit-1 - Deploy and monitor Cargo Tracker](#unit-1---deploy-and-monitor-cargo-tracker) up to and including **Prepare your variables for deployments**.
+
+   Use the values from the workflow to fill out the values in your `setup-env-variables.sh`.
+   
+   * `DB_RESOURCE_NAME` must be the name of the database resource, such as `liberty-dbs-1148487969748`. Find this value by entering the resource group in which the workflow deployed the database and selecting the database resource.
+   
+   * `DB_NAME` must be `libertydb`.
+   
+   * If using the AI shortest path feature, set the `AZURE_OPENAI` variables as described in Unit 1.
+   
+   * Leave the remainder of the variables unchanged. They are not used in the "Run locally with remote resources without Docker" scenario.
+   
+1. Remove the Application Insights agent jar. 
+
+   1. Edit the file `${DIR}/cargotracker/src/main/liberty/config/jvm.options`.
+   
+      Remove the entire line containing the string `applicationinsights-agent.jar`.
+   
+      Application Insights is not used in the "Run locally with remote resources without Docker" scenario.
+      
+      Note that addtional JVM options can be inserted into this file, such as local debugger options `-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005`.
+   
+1. Wait until the workflow successfully completes the **deploy-db** job before continuing.
+
+1. Enable network access from your local workstation to the database.
+
+   1. Sign in to the Azure portal using the same subscription to which you deployed the database.
+   
+   1. Find the resource group in which the database has been deployed.
+   
+   1. Select the database resource. It will be named something like `liberty-dbs-1148487969748`.
+   
+   1. In the left navigation panel, under **Settings** select **Networking**.
+   
+   1. Find the text **Add current client IP address**. Select the text and select **Save**. Wait for the save operation to complete.
+
+1. Build the cargotracker.war. The POM substitutes the environment variables for the database connection.
+
+   ```bash
+   mvn -PopenLibertyOnAks clean install
+   ```
+   
+1. Run the cargotracker.war. Make sure to run this command in the same shell where the environment variables are defined.
+
+   ```bash
+   mvn -PopenLibertyOnAks liberty:run
+   ```
+
+1. Your cargotracker will now be running at `http://localhost:9080/cargo-tracker/`.
+
+   1. To exercise the UI, follow the steps in [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality). If you get an unexpected error, wait a few minutes and try again.
+   1. To exercise the REST endpoint, including the AI shortest path feature, follow the steps in [Use Cargo Tracker and make a few HTTP calls](#use-cargo-tracker-and-make-a-few-http-calls)

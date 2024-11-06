@@ -31,14 +31,14 @@ on:
 env:
   refArmttk: c11a62d4ae011ee96fdecc76d76d811c5b5a99ce
   refJavaee: 931ce903b85a4bf1fc79c763a92ac3666f10a1e0
-  appInsightsName: appinsights${{ github.run_id }}${{ github.run_number }}
+  appInsightsName: appinsights-${{ github.run_id }}-${{ github.run_number }}
   azCliVersion: 2.60.0
   azureCredentials: ${{ secrets.AZURE_CREDENTIALS }}
-  dbServerName: liberty-dbs-${{ github.run_id }}${{ github.run_number }}
+  dbServerName: liberty-dbs-${{ github.run_id }}-${{ github.run_number }}
   dbName: libertydb
   dbAdminUser: liberty
   dbPassword: ${{ secrets.DB_PASSWORD }}
-  workspaceName: loga${{ github.run_id }}${{ github.run_number }}
+  workspaceName: loga-${{ github.run_id }}-${{ github.run_number }}
   namespace: default
   replicas: 3
   resourceGroupForDB: rg-liberty-db-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}

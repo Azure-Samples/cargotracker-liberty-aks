@@ -575,6 +575,9 @@
                 <param.db.user>${env.DB_USER}</param.db.user>
                 <param.db.password>${env.DB_PASSWORD}</param.db.password>
                 <param.namespace>${env.NAMESPACE}</param.namespace>
+                <param.ai.azure.openai.key>${env.AZURE_OPENAI_KEY}</param.ai.azure.openai.key>
+                <param.ai.azure.openai.endpoint>${env.AZURE_OPENAI_ENDPOINT}</param.ai.azure.openai.endpoint>
+                <param.ai.azure.openai.deploymentname>${env.AZURE_OPENAI_DEPLOYMENT_NAME}</param.ai.azure.openai.deploymentname>
                 <param.replicas>3</param.replicas>
                 <param.app.insight.connection.string>${env.APPLICATIONINSIGHTS_CONNECTION_STRING}</param.app.insight.connection.string>
             </properties>

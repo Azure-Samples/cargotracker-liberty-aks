@@ -8,6 +8,11 @@ on:
         description: "Azure region location for resources"
         required: true
         default: westus
+      enableOpenAI:
+        description: "Set this value to true to enable OpenAI in the application."
+        required: true
+        type: boolean
+        default: false
       cleanupOptions:
         description: 'Choose the cleanup option after the workflow completes'
         required: true
@@ -51,6 +56,22 @@ jobs:
   preflight:
     runs-on: ubuntu-20.04
     steps:
+      - name: Validate OpenAI Parameters
+        run: |
+          if [ "${{ inputs.enableOpenAI }}" == "true" ]; then
+            if [ -z "${{ secrets.AZURE_OPENAI_KEY }}" ]; then
+              echo "AZURE_OPENAI_KEY is not set. Exiting. Please set the secret in the repository settings."
+              exit 1
+            fi
+            if [ -z "${{ secrets.AZURE_OPENAI_ENDPOINT }}" ]; then
+              echo "AZURE_OPENAI_ENDPOINT is not set. Exiting. Please set the secret in the repository settings."
+              exit 1
+            fi
+            if [ -z "${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}" ]; then
+              echo "AZURE_OPENAI_DEPLOYMENT_NAME is not set. Exiting. Please set the secret in the repository settings."
+              exit 1
+            fi
+          fi
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.29.47/bicep-linux-x64
@@ -361,9 +382,11 @@ jobs:
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}
           export APPLICATIONINSIGHTS_CONNECTION_STRING=${{steps.prepare_variables.outputs.appInsightsConnectionString}}
-          export AZURE_OPENAI_KEY=${{ secrets.AZURE_OPENAI_KEY }}
-          export AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          export AZURE_OPENAI_DEPLOYMENT_NAME=${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}
+          if [ "${{ inputs.enableOpenAI }}" == "true" ]; then
+            export AZURE_OPENAI_KEY=${{ secrets.AZURE_OPENAI_KEY }}
+            export AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}
+            export AZURE_OPENAI_DEPLOYMENT_NAME=${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}
+          fi
           mvn clean install -PopenLibertyOnAks --file cargotracker/pom.xml
       - name: Query version string for deployment verification
         run: |
@@ -396,7 +419,9 @@ jobs:
           cd cargotracker/target/
           kubectl apply -f db-secret.yaml
           kubectl apply -f app-insight.yaml
-          kubectl apply -f openai.yaml
+          if [ "${{ inputs.enableOpenAI }}" == "true" ]; then
+            kubectl apply -f openai.yaml
+          fi
           kubectl apply -f openlibertyapplication.yaml
           # restart every time to make sure
           sleep 30

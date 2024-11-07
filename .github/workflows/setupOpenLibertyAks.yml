@@ -11,8 +11,11 @@ on:
       enableOpenAI:
         description: "Set this value to true to enable OpenAI in the application."
         required: true
-        type: boolean
+        type: choice
         default: false
+        options:
+          - true
+          - false
       cleanupOptions:
         description: 'Choose the cleanup option after the workflow completes'
         required: true

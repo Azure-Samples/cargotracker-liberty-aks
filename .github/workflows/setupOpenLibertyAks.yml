@@ -361,6 +361,9 @@ jobs:
           export DB_PASSWORD=${{ env.dbPassword }}
           export NAMESPACE=${{ env.namespace }}
           export APPLICATIONINSIGHTS_CONNECTION_STRING=${{steps.prepare_variables.outputs.appInsightsConnectionString}}
+          export AZURE_OPENAI_KEY=${{ secrets.AZURE_OPENAI_KEY }}
+          export AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          export AZURE_OPENAI_DEPLOYMENT_NAME=${{ secrets.AZURE_OPENAI_DEPLOYMENT_NAME }}
           mvn clean install -PopenLibertyOnAks --file cargotracker/pom.xml
       - name: Query version string for deployment verification
         run: |
@@ -393,6 +396,7 @@ jobs:
           cd cargotracker/target/
           kubectl apply -f db-secret.yaml
           kubectl apply -f app-insight.yaml
+          kubectl apply -f openai.yaml
           kubectl apply -f openlibertyapplication.yaml
           # restart every time to make sure
           sleep 30

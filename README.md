@@ -89,14 +89,14 @@ If you see a message about `detached HEAD state`, it is safe to ignore. It just 
 
 The steps in this section are optional unless you want to enable the AI shortest path computation.
 
-1. Create an Azure Open AI account and get the required credentials.
+1. Create an Azure OpenAI account and get the required credentials.
 
    1. In a new tab, visit [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal).
    1. If you want to use the following steps, select the **Portal** tab. Otherwise, just follow the documentation to get the following environment variable values in the way best suited to your needs.
 
-      - `AZURE_OPENAI_KEY`: Your Azure Open AI API key.
+      - `AZURE_OPENAI_KEY`: Your Azure OpenAI API key.
       - `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI Endpoint. This will be something like `https://ejb011017openai.openai.azure.com/`
-      - `AZURE_OPENAI_DEPLOYMENT_NAME`: Your Azure Open AI Deployment name. This example uses `gpt-4o`
+      - `AZURE_OPENAI_DEPLOYMENT_NAME`: Your Azure OpenAI Deployment name. This example uses `gpt-4o`
       
    1. Follow the steps up to but not including the section **Deploy a model**.
    

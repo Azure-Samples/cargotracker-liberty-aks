@@ -45,12 +45,22 @@ env:
   resourceGroupForOpenLibertyAks: rg-ol-aks-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c
+  location: ${{ github.event.inputs.location }}
+  cleanupOptions: ${{ github.event.inputs.cleanupOptions }}
+  deployRequiredSupportingResourcesOnly: ${{ github.event.inputs.deployRequiredSupportingResourcesOnly }}
 
 jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
   preflight:
     runs-on: ubuntu-20.04
     steps:
+      # if the workflow is triggered by a schedule event, update the environment variables.
+      - name: Update environment variables if triggered by a schedule event
+        if: github.event_name == 'schedule'
+        run: |
+          echo "location=westus" >> $GITHUB_ENV
+          echo "cleanupOptions=delete_immediately" >> $GITHUB_ENV
+          echo "deployRequiredSupportingResourcesOnly=false" >> $GITHUB_ENV
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.29.47/bicep-linux-x64
@@ -114,7 +124,7 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForDB }}
-            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ inputs.location }}
+            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ env.location }}
       - name: Set Up Azure Postgresql to Test dbTemplate
         id: setup-postgresql
         uses: azure/CLI@v1
@@ -125,7 +135,7 @@ jobs:
             az postgres flexible-server create \
             --resource-group ${{ env.resourceGroupForDB }} \
             --name ${{ env.dbServerName }} \
-            --location ${{ inputs.location }} \
+            --location ${{ env.location }} \
             --admin-user ${{ env.dbAdminUser }} \
             --admin-password ${{ env.dbPassword }} \
             --version 16 \
@@ -160,7 +170,7 @@ jobs:
   deploy-openliberty-on-aks:
     needs: preflight
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
+    if: ${{ env.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
         uses: actions/checkout@v2
@@ -203,7 +213,7 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForOpenLibertyAks }}
-            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ inputs.location }}
+            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ env.location }}
       - name: Checkout cargotracker
         uses: actions/checkout@v2
         with:
@@ -211,7 +221,7 @@ jobs:
       - name: Prepare parameter file
         run: |
           echo "replace placeholders using real parameter"
-          sed -i "s/#location#/${{ inputs.location }}/g; \
+          sed -i "s/#location#/${{ env.location }}/g; \
                   s/#testbranchName#/${aksRepoBranchName}/g; \
                   s/#gitUserName#/${aksRepoUserName}/g" \
                   cargotracker/src/test/aks/parameters.json
@@ -249,7 +259,7 @@ jobs:
   deploy-azure-monitor:
     needs: [preflight, deploy-openliberty-on-aks]
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
+    if: ${{ env.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - uses: azure/login@v1
         id: azure-login
@@ -264,7 +274,7 @@ jobs:
             az monitor log-analytics workspace create \
               --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --workspace-name ${{ env.workspaceName }} \
-              --location ${{ inputs.location }}
+              --location ${{ env.location }}
       - name: Enable Container Insights
         id: enable-container-insights
         uses: azure/CLI@v1
@@ -291,13 +301,13 @@ jobs:
             az monitor app-insights component create \
               --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --app ${{ env.appInsightsName }} \
-              --location ${{ inputs.location }} \
+              --location ${{ env.location }} \
               --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
     needs: [preflight, deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
-    if: ${{ inputs.deployRequiredSupportingResourcesOnly == false }}
+    if: ${{ env.deployRequiredSupportingResourcesOnly == false }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -506,25 +516,25 @@ jobs:
           creds: ${{ env.azureCredentials }}
       - name: Handle cleanup options
         run: |
-          if [ "${{ github.event.inputs.cleanupOptions }}" == "delete_immediately" ]; then
+          if [ "${{ env.cleanupOptions }}" == "delete_immediately" ]; then
             echo "Resources will be deleted immediately."
-          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_30m" ]; then
+          elif [ "${{ env.cleanupOptions }}" == "delete_after_30m" ]; then
             echo "Sleeping for 30m before deleting resources."
             sleep 30m
-          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_2hours" ]; then
+          elif [ "${{ env.cleanupOptions }}" == "delete_after_2hours" ]; then
             echo "Sleeping for 2h before deleting resources."
             sleep 2h
-          elif [ "${{ github.event.inputs.cleanupOptions }}" == "delete_after_5hours" ]; then
+          elif [ "${{ env.cleanupOptions }}" == "delete_after_5hours" ]; then
             echo "Sleeping for 5h before deleting resources."
             sleep 5h
-          elif [ "${{ github.event.inputs.cleanupOptions }}" == "never_delete" ]; then
+          elif [ "${{ env.cleanupOptions }}" == "never_delete" ]; then
             echo "Resources will not be deleted automatically."
             exit 0
           fi
 
       - name: Delete Azure resources.
         uses: azure/CLI@v1
-        if: ${{ github.event.inputs.cleanupOptions  != 'never_delete' }}
+        if: ${{ env.cleanupOptions  != 'never_delete' }}
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |

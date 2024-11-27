@@ -170,8 +170,12 @@ jobs:
   deploy-openliberty-on-aks:
     needs: preflight
     runs-on: ubuntu-20.04
-    if: env.deployRequiredSupportingResourcesOnly == 'false'
     steps:
+      - name: check whether to skip current job
+        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        run: |
+          echo "skip current job"
+          exit 0
       - name: Checkout ${{ env.aksRepoUserName }}/azure.liberty.aks
         uses: actions/checkout@v2
         with:
@@ -259,8 +263,12 @@ jobs:
   deploy-azure-monitor:
     needs: [preflight, deploy-openliberty-on-aks]
     runs-on: ubuntu-20.04
-    if: env.deployRequiredSupportingResourcesOnly == 'false'
     steps:
+      - name: check whether to skip current job
+        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        run: |
+          echo "skip current job"
+          exit 0
       - uses: azure/login@v1
         id: azure-login
         with:
@@ -307,8 +315,12 @@ jobs:
   deploy-cargo-tracker:
     needs: [preflight, deploy-db,deploy-azure-monitor]
     runs-on: ubuntu-20.04
-    if: env.deployRequiredSupportingResourcesOnly == 'false'
     steps:
+      - name: check whether to skip current job
+        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        run: |
+          echo "skip current job"
+          exit 0
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:

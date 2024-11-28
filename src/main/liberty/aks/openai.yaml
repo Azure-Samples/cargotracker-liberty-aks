@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-secret
+  namespace: ${param.namespace}
+type: Opaque
+stringData:
+  azureOpenAIKey: ${param.ai.azure.openai.key}
+  azureOpenAIEndpoint: ${param.ai.azure.openai.endpoint}
+  azureOpenAIDeploymentName: ${param.ai.azure.openai.deploymentname}

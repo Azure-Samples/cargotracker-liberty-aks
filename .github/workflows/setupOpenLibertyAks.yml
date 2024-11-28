@@ -46,22 +46,29 @@ env:
   resourceGroupForOpenLibertyAks: rg-ol-aks-${{ github.repository_owner }}-${{ github.run_id }}-${{ github.run_number }}
   aksRepoUserName: WASdev
   aksRepoBranchName: 048e776e9efe2ffed8368812e198c1007ba94b2c
-  location: ${{ github.event.inputs.location }}
-  cleanupOptions: ${{ github.event.inputs.cleanupOptions }}
-  deployRequiredSupportingResourcesOnly: ${{ github.event.inputs.deployRequiredSupportingResourcesOnly }}
 
 jobs:
   # Make it so the bicep file that causes Liberty on AKS to be deployed is available to this workflow.
   preflight:
     runs-on: ubuntu-20.04
+    outputs:
+      location: ${{ steps.update-env.outputs.location }}
+      cleanupOptions: ${{ steps.update-env.outputs.cleanupOptions }}
+      deployRequiredSupportingResourcesOnly: ${{ steps.update-env.outputs.deployRequiredSupportingResourcesOnly }}
     steps:
       # if the workflow is triggered by a schedule event, update the environment variables.
       - name: Update environment variables if triggered by a schedule event
-        if: github.event_name == 'schedule'
+        id: update-env
         run: |
-          echo "location=westus" >> $GITHUB_ENV
-          echo "cleanupOptions=delete_immediately" >> $GITHUB_ENV
-          echo "deployRequiredSupportingResourcesOnly=false" >> $GITHUB_ENV
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+           echo "::set-output name=location::westus"
+           echo "::set-output name=cleanupOptions::delete_immediately"
+           echo "::set-output name=deployRequiredSupportingResourcesOnly::false"
+          else
+           echo "::set-output name=location::${{ github.event.inputs.location }}"
+           echo "::set-output name=cleanupOptions::${{ github.event.inputs.cleanupOptions }}"
+           echo "::set-output name=deployRequiredSupportingResourcesOnly::${{ github.event.inputs.deployRequiredSupportingResourcesOnly }}"
+          fi
       - name: Set up bicep
         run: |
           curl -Lo bicep https://github.com/Azure/bicep/releases/download/v0.29.47/bicep-linux-x64
@@ -125,7 +132,7 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForDB }}
-            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ env.location }}
+            az group create --verbose --name ${{ env.resourceGroupForDB }} --location ${{ needs.preflight.outputs.location }}
       - name: Set Up Azure Postgresql to Test dbTemplate
         id: setup-postgresql
         uses: azure/CLI@v1
@@ -136,7 +143,7 @@ jobs:
             az postgres flexible-server create \
             --resource-group ${{ env.resourceGroupForDB }} \
             --name ${{ env.dbServerName }} \
-            --location ${{ env.location }} \
+            --location ${{ needs.preflight.outputs.location }} \
             --admin-user ${{ env.dbAdminUser }} \
             --admin-password ${{ env.dbPassword }} \
             --version 16 \
@@ -173,7 +180,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: check whether to skip current job
-        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        if: ${{ needs.preflight.outputs.deployRequiredSupportingResourcesOnly == 'ture' }}
         run: |
           echo "skip current job"
           exit 0
@@ -218,7 +225,7 @@ jobs:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |
             echo "create resource group" ${{ env.resourceGroupForOpenLibertyAks }}
-            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ env.location }}
+            az group create --verbose --name ${{ env.resourceGroupForOpenLibertyAks }} --location ${{ needs.preflight.outputs.location }}
       - name: Checkout cargotracker
         uses: actions/checkout@v2
         with:
@@ -226,7 +233,7 @@ jobs:
       - name: Prepare parameter file
         run: |
           echo "replace placeholders using real parameter"
-          sed -i "s/#location#/${{ env.location }}/g; \
+          sed -i "s/#location#/${{ needs.preflight.outputs.location }}/g; \
                   s/#testbranchName#/${aksRepoBranchName}/g; \
                   s/#gitUserName#/${aksRepoUserName}/g" \
                   cargotracker/src/test/aks/parameters.json
@@ -266,7 +273,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: check whether to skip current job
-        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        if: ${{ needs.preflight.outputs.deployRequiredSupportingResourcesOnly == 'ture' }}
         run: |
           echo "skip current job"
           exit 0
@@ -283,7 +290,7 @@ jobs:
             az monitor log-analytics workspace create \
               --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --workspace-name ${{ env.workspaceName }} \
-              --location ${{ env.location }}
+              --location ${{ needs.preflight.outputs.location }}
       - name: Enable Container Insights
         id: enable-container-insights
         uses: azure/CLI@v1
@@ -310,7 +317,7 @@ jobs:
             az monitor app-insights component create \
               --resource-group ${{ env.resourceGroupForOpenLibertyAks }} \
               --app ${{ env.appInsightsName }} \
-              --location ${{ env.location }} \
+              --location ${{ needs.preflight.outputs.location }} \
               --workspace ${workspaceId}
   # Build app, push to ACR and apply it to Open Liberty servers running on AKS.
   deploy-cargo-tracker:
@@ -318,7 +325,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: check whether to skip current job
-        if: env.deployRequiredSupportingResourcesOnly == 'ture'
+        if: ${{ needs.preflight.outputs.deployRequiredSupportingResourcesOnly == 'ture' }}
         run: |
           echo "skip current job"
           exit 0
@@ -529,18 +536,18 @@ jobs:
           creds: ${{ env.azureCredentials }}
       - name: Handle cleanup options
         run: |
-          if [ "${{ env.cleanupOptions }}" == "delete_immediately" ]; then
+          if [ "${{ needs.preflight.outputs.cleanupOptions }}" == "delete_immediately" ]; then
             echo "Resources will be deleted immediately."
-          elif [ "${{ env.cleanupOptions }}" == "delete_after_30m" ]; then
+          elif [ "${{ needs.preflight.outputs.cleanupOptions }}" == "delete_after_30m" ]; then
             echo "Sleeping for 30m before deleting resources."
             sleep 30m
-          elif [ "${{ env.cleanupOptions }}" == "delete_after_2hours" ]; then
+          elif [ "${{ needs.preflight.outputs.cleanupOptions }}" == "delete_after_2hours" ]; then
             echo "Sleeping for 2h before deleting resources."
             sleep 2h
-          elif [ "${{ env.cleanupOptions }}" == "delete_after_5hours" ]; then
+          elif [ "${{ needs.preflight.outputs.cleanupOptions }}" == "delete_after_5hours" ]; then
             echo "Sleeping for 5h before deleting resources."
             sleep 5h
-          elif [ "${{ env.cleanupOptions }}" == "never_delete" ]; then
+          elif [ "${{ needs.preflight.outputs.cleanupOptions }}" == "never_delete" ]; then
             echo "Resources will not be deleted automatically."
             exit 0
           fi

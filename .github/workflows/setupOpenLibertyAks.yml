@@ -524,7 +524,7 @@ jobs:
           echo "${appURL}" >> $GITHUB_STEP_SUMMARY
  # Delete azure resources
   cleanup:
-    name: provisioned resources will ${{ inputs.cleanupOptions }} automatically
+    name: provisioned resources will ${{ needs.preflight.outputs.cleanupOptions }} automatically
     if: always()
     needs: [preflight, deploy-db, deploy-openliberty-on-aks, deploy-azure-monitor, deploy-cargo-tracker]
     runs-on: ubuntu-latest
@@ -553,7 +553,7 @@ jobs:
 
       - name: Delete Azure resources.
         uses: azure/CLI@v1
-        if: ${{ env.cleanupOptions  != 'never_delete' }}
+        if: ${{ needs.preflight.outputs.cleanupOptions  != 'never_delete' }}
         with:
           azcliversion: ${{ env.azCliVersion }}
           inlineScript: |

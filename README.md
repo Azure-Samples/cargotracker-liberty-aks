@@ -919,3 +919,16 @@ The steps in this section guide you to deploy supporting resources with the GitH
 
    1. To exercise the UI, follow the steps in [Appendix 1 - Exercise Cargo Tracker Functionality](#appendix-1---exercise-cargo-tracker-functionality). If you get an unexpected error, wait a few minutes and try again.
    1. To exercise the REST endpoint, including the AI shortest path feature, follow the steps in [Use Cargo Tracker and make a few HTTP calls](#use-cargo-tracker-and-make-a-few-http-calls)
+
+## Appendix 4 - Helm charts repository for cargotracker-liberty-aks
+The folder [charts/cargotracker-liberty-aks](charts/cargotracker-liberty-aks) contains a helm chart for deploying the cargotracker application to Open Liberty on AKS. 
+The workflow [package-helm-chart.yaml](.github/workflows/package-helm-chart.yaml) is used to build the helm chart and publish it to the GitHub Pages branch(gh-pages) of this repository. 
+
+To add the helm chart repository to your local helm client, run the following command:
+```bash
+helm repo add cargotracker-liberty-aks https://azure-javaee.github.io/cargotracker-liberty-aks
+```
+
+**Deployments and helm chart versions**
+- You can see all the deployments in the page https://github.com/azure-javaee/cargotracker-liberty-aks/deployments.
+- You can see all the helm chart versions in this [link](https://azure-javaee.github.io/cargotracker-liberty-aks/index.yaml).

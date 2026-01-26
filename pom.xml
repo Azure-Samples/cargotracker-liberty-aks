@@ -29,7 +29,7 @@
 
         <!-- Test Utilities -->
         <arquilian.version>1.8.0.Final</arquilian.version>
-        <assertj.version>3.18.1</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <hamcrest.version>2.2</hamcrest.version>
         <initial.data.sql>initital-data.sql</initial.data.sql>
         <jta.data.source>java:app/jdbc/CargoTrackerDatabase</jta.data.source>
@@ -121,7 +121,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
         <!-- Arquillian dependencies -->
